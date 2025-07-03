@@ -110,3 +110,17 @@ DESCRIBE employees; # 显示了表中字段的详细信息
 
 DESC departments;
 
+# 12. 过滤数据
+
+# 练习: 查询90号部门对员工信息
+SELECT *
+FROM employees
+# 过滤条件，声明在FROM结构的后面
+WHERE department_id = 90;
+
+# 练习: 查询last_name为'King'对员工信息
+SELECT *
+FROM employees
+WHERE last_name = 'King';
+
+
