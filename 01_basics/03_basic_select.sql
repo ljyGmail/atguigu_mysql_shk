@@ -45,4 +45,16 @@ DCL: 数据控制语言。 COMMIT \ ROLLBACK \ SAVEPOINT \ GRANT \ REVOKE
 方式2: 基于具体的图形化界面的工具可以导入数据
  */
 
+# 5. 最基本的SELECT语句 SELECT 字段1, 字段2... FROM 表名
+SELECT 1 + 1, 3 * 2;
+SELECT 1 + 1, 3 * 2
+FROM DUAL;
+# DUAL： 伪表
+
+# *: 表中的所有的字段(或列)
+SELECT *
+FROM employees;
+
+SELECT employee_id, last_name, salary
+FROM employees;
 
