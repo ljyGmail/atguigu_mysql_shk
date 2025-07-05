@@ -189,3 +189,47 @@ SELECT 'atguigu' REGEXP 'gu.gu', 'atguigu' REGEXP '[ab]'
 FROM DUAL;
 ```
 
+> 20 逻辑运算符与位运算符的使用
+
+## 3. 逻辑运算符: OR ||, AND &&, NOT !, XOR
+```mysql
+# OR AND
+SELECT last_name, salary, department_id
+FROM employees
+# WHERE department_id = 10
+#    OR department_id = 20;
+# WHERE department_id = 10
+#   AND department_id = 20;
+WHERE department_id = 50
+  AND salary > 6000;
+
+# NOT
+SELECT last_name, salary, department_id, commission_pct
+FROM employees
+# WHERE salary NOT BETWEEN 6000 AND 8000;
+# WHERE commission_pct IS NOT NULL;
+WHERE NOT commission_pct <=> NULL;
+
+# XOR: 追求的是"异"
+SELECT last_name, salary, department_id
+FROM employees
+WHERE department_id = 50
+          XOR salary > 6000;
+
+# 注意: AND的优先级高于OR。
+```
+
+## 4. 位运算符: &, |, *, ~, >>, <<
+```mysql
+SELECT 12 & 5, 12 | 5, 12 ^ 5
+FROM DUAL;
+
+SELECT 10 & ~1
+FROM DUAL;
+# -> 10
+
+# 在一定范围内满足: 每向左移动1位，相当于乘以2; 每向右移动一位，相当于除以2。
+SELECT 4 << 1, 8 >> 1
+FROM DUAL; # -> 8 4 
+```
+
