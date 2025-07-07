@@ -324,3 +324,43 @@ FROM employees e
 WHERE e.department_id IS NULL;
 ```
 
+> 30 NATURAL JOIN与USING的使用
+
+## 10. SQL99语法的新特性1: 自然连接
+
+```mysql
+SELECT e.employee_id, e.last_name, d.department_name
+FROM employees e
+         JOIN departments d
+              ON e.department_id = d.department_id
+                  AND e.manager_id = d.manager_id;
+
+# NATURAL JOIN: 它会帮你自动查询两张连接表中*所有相同的字段*，然后进行*等值连接*。
+SELECT e.employee_id, e.last_name, d.department_name
+FROM employees e
+         NATURAL JOIN departments d;
+```
+
+## 11. SQL99语法的新特性2: USING
+
+```mysql
+SELECT e.employee_id, e.last_name, d.department_name
+FROM employees e
+         JOIN departments d
+              ON e.department_id = d.department_id;
+
+# 在USING的括号中指定同名的连接字段
+SELECT e.employee_id, e.last_name, d.department_name
+FROM employees e
+         JOIN departments d
+              USING (department_id);
+
+# 拓展: 可以先JOIN多个表，再在后面指定表的连接条件。
+SELECT e.last_name, j.job_title, d.department_name
+FROM employees e
+         INNER JOIN departments d
+         INNER JOIN jobs j
+                    ON e.department_id = d.department_id
+                        AND e.job_id = j.job_id;
+```
+
