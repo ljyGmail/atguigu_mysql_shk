@@ -237,4 +237,90 @@ FROM employees e
  */
 ```
 
+> 29 使用SQL99实现7种JOIN操作
+
+## 8. UNION和UNION ALL的使用
+
+```mysql
+# UNION: 会执行去重操作。
+# UNION ALL: 不会执行去重操作。
+# 结论: 如果明确知道合并数据后的结果数据不存在重复数据，或者不需要去除重复的数据，
+#       则尽量使用UNION ALL语句，以提高数据查询的效率。
+```
+
+## 9. 7种JOIN的实现:
+
+![img.png](images/29_sql99_7joins.png)
+
+```mysql
+# 中图: 内连接
+SELECT e.employee_id, d.department_name
+FROM employees e
+         JOIN departments d
+              ON e.department_id = d.department_id;
+
+# 左上图: 左外连接
+SELECT e.employee_id, d.department_name
+FROM employees e
+         LEFT JOIN departments d
+                   ON e.department_id = d.department_id;
+
+# 右上图: 右外连接
+SELECT e.employee_id, d.department_name
+FROM employees e
+         RIGHT JOIN departments d
+                    ON e.department_id = d.department_id;
+
+# 左中图:
+SELECT e.employee_id, d.department_name
+FROM employees e
+         LEFT JOIN departments d
+                   ON e.department_id = d.department_id
+WHERE d.department_id IS NULL;
+
+# 右中图:
+SELECT e.employee_id, d.department_name
+FROM employees e
+         RIGHT JOIN departments d
+                    ON e.department_id = d.department_id
+WHERE e.department_id IS NULL;
+
+# 左下图: 满外连接
+# 方式1: 左上图 UNION ALL 右中图
+SELECT e.employee_id, d.department_name
+FROM employees e
+         LEFT JOIN departments d
+                   ON e.department_id = d.department_id
+UNION ALL
+SELECT e.employee_id, d.department_name
+FROM employees e
+         RIGHT JOIN departments d
+                    ON e.department_id = d.department_id
+WHERE e.department_id IS NULL;
+
+# 方式2: 右上图 UNION ALL 左中图
+SELECT e.employee_id, d.department_name
+FROM employees e
+         RIGHT JOIN departments d
+                    ON e.department_id = d.department_id
+UNION ALL
+SELECT e.employee_id, d.department_name
+FROM employees e
+         LEFT JOIN departments d
+                   ON e.department_id = d.department_id
+WHERE d.department_id IS NULL;
+
+# 右下图: 左中图 UNION ALL 右中图
+SELECT e.employee_id, d.department_name
+FROM employees e
+         LEFT JOIN departments d
+                   ON e.department_id = d.department_id
+WHERE d.department_id IS NULL
+UNION ALL
+SELECT e.employee_id, d.department_name
+FROM employees e
+         RIGHT JOIN departments d
+                    ON e.department_id = d.department_id
+WHERE e.department_id IS NULL;
+```
 
