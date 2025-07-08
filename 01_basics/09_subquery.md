@@ -57,3 +57,105 @@ WHERE (SELECT salary
     - 相关子查询 vs 非相关子查询
         - 举例: 相关子查询的需求: 查询工资大于本部门平均工资的员工信息。  
           不相关子查询的需求: 查询工资大于本公司平均工资的员工信息。
+
+> 44 单行子查询案例分析
+
+## 4. 单行子查询
+
+### 4.1 单行操作符: =, !=, >, >=, <, <=
+
+```mysql
+# 子查询的编写技巧(或步骤): 1️⃣从里往外写 2️⃣从外往里写
+
+# 题目: 查询工资大于149号员工工资的员工的信息。
+SELECT employee_id, last_name, salary
+FROM employees
+WHERE salary >
+      (SELECT salary
+       FROM employees
+       WHERE employee_id = 149);
+
+# 题目: 返回job_id与141号员工相同，salary比143号员工多的员工姓名，job_id和工资。
+SELECT last_name, job_id, salary
+FROM employees
+WHERE job_id = (SELECT job_id
+                FROM employees
+                WHERE employee_id = 141)
+  AND salary > (SELECT salary
+                FROM employees
+                WHERE employee_id = 143);
+
+# 题目: 返回公司工资最少的员工的last_name，job_id和salary。
+SELECT last_name, job_id, salary
+FROM employees
+WHERE salary = (SELECT MIN(salary)
+                FROM employees);
+
+# 题目: 查询与141号员工的manager_id和department_id相同的其他员工的
+# employee_id，manager_id，department_id。
+# 方式1:
+SELECT employee_id, manager_id, department_id
+FROM employees
+WHERE manager_id = (SELECT manager_id
+                    FROM employees
+                    WHERE employee_id = 141)
+  AND department_id = (SELECT department_id
+                       FROM employees
+                       WHERE employee_id = 141)
+  AND employee_id <> 141;
+
+# 方式2: 了解
+SELECT employee_id, manager_id, department_id
+FROM employees
+WHERE (manager_id, department_id) = (SELECT manager_id, department_id
+                                     FROM employees
+                                     WHERE employee_id = 141)
+  AND employee_id != 141;
+
+# 题目: 查询最低工资大于110号部门最低工资的部门id和其最低工资。
+SELECT department_id, MIN(salary)
+FROM employees
+WHERE department_id IS NOT NULL
+GROUP BY department_id
+HAVING MIN(salary) > (SELECT MIN(salary)
+                      FROM employees
+                      WHERE department_id = 110);
+
+# 题目: 查询员工的employee_id, last_name和location。
+# 其中，若员工department_id与location_id为1800的department_id相同，
+# 则location为'Canada'，其余则为'USA'。
+SELECT employee_id,
+       last_name,
+       CASE department_id
+           WHEN (SELECT department_id
+                 FROM departments
+                 WHERE location_id = 1800) THEN 'Canada'
+           ELSE 'USA' END "location"
+FROM employees;
+
+SELECT department_id
+FROM departments
+WHERE location_id = 1800;
+```
+
+### 4.2 子查询中的空值问题
+
+```mysql
+SELECT last_name, job_id
+FROM employees
+WHERE job_id = (SELECT job_id
+                FROM employees
+                WHERE last_name = 'Haas');
+```
+
+### 4.3 非法使用子查询
+
+```mysql
+# 错误信息: Subquery returns more than 1 row.
+SELECT *
+FROM employees
+WHERE salary = (SELECT MIN(salary)
+                FROM employees
+                GROUP BY department_id);
+```
+
