@@ -130,3 +130,133 @@ SELECT employee_id, first_name, last_name, NULLIF(LENGTH(first_name), LENGTH(las
 FROM employees;
 ```
 
+> 35 日期时间类型的函数讲解
+
+## 3. 日期时间类型的函数讲解
+
+### 3.1 获取日期、时间
+
+```mysql
+SELECT CURDATE(),
+       CURRENT_DATE(),
+       CURTIME(),
+       NOW(),
+       SYSDATE(),
+       UTC_DATE(),
+       UTC_TIME()
+FROM dual;
+
+SELECT CURDATE(), CURDATE() + 0, CURTIME(), CURTIME() + 0, NOW() + 0
+FROM DUAL;
+```
+
+### 3.2 日期与时间戳的转换
+
+```mysql
+SELECT UNIX_TIMESTAMP(),
+       UNIX_TIMESTAMP('2025-08-26 12:12:32'),
+       FROM_UNIXTIME(1751925042),
+       FROM_UNIXTIME(1756210352)
+FROM DUAL;
+```
+
+### 3.3 获取月份、星期、星期数、天数等函数
+
+```mysql
+SELECT YEAR(CURDATE()),
+       MONTH(CURDATE()),
+       DAY(CURDATE()),
+       HOUR(CURTIME()),
+       MINUTE(NOW()),
+       SECOND(SYSDATE())
+FROM DUAL;
+
+SELECT MONTHNAME('2025-07-08'),
+       DAYNAME('2025-07-08'),
+       WEEKDAY('2025-07-08'),
+       QUARTER(CURDATE()),
+       WEEK(CURDATE()),
+       DAYOFYEAR(NOW()),
+       DAYOFMONTH(NOW()),
+       DAYOFWEEK(NOW())
+FROM DUAL;
+```
+
+### 3.4 日期的操作函数
+
+```mysql
+SELECT EXTRACT(SECOND FROM NOW()),
+       EXTRACT(DAY FROM NOW()),
+       EXTRACT(HOUR_MINUTE FROM NOW()),
+       EXTRACT(QUARTER FROM NOW()),
+       EXTRACT(MONTH FROM '2025-07-06')
+FROM DUAL;
+```
+
+### 3.5 时间和秒钟转换的函数
+
+```mysql
+SELECT TIME_TO_SEC(CURTIME()), SEC_TO_TIME(79646)
+FROM DUAL;
+```
+
+### 3.6 计算日期和时间的函数
+
+```mysql
+SELECT NOW(),
+       DATE_ADD(NOW(), INTERVAL 1 YEAR),
+       DATE_ADD(NOW(), INTERVAL -1 YEAR),
+       DATE_SUB(NOW(), INTERVAL 1 YEAR)
+FROM DUAL;
+
+SELECT DATE_ADD(NOW(), INTERVAL 1 DAY)                               AS col1,
+       DATE_ADD('2021-10-21 23:32:12', INTERVAL 1 SECOND)            AS col2,
+       ADDDATE('2021-10-21 23:32:12', INTERVAL 1 SECOND)             AS col3,
+       DATE_ADD('2021-10-21 23:32:12', INTERVAL '1_1' MINUTE_SECOND) AS col4, # 需要单引号
+       DATE_ADD(NOW(), INTERVAL -1 YEAR)                             AS col5, # 可以是负数
+       DATE_ADD(NOW(), INTERVAL '1_1' YEAR_MONTH)                    AS col6  # 需要单引号
+FROM DUAL;
+
+SELECT ADDTIME(NOW(), 20),
+       SUBTIME(NOW(), 30),
+       SUBTIME(NOW(), '1:1:3'),
+       DATEDIFF(NOW(), '2025-07-01'),
+       TIMEDIFF(NOW(), '2025-07-07 18:30:32'),
+       FROM_DAYS(366),
+       TO_DAYS('0000-12-25'),
+       LAST_DAY(NOW()),
+       MAKEDATE(YEAR(NOW()), 12),
+       MAKETIME(10, 21, 23),
+       PERIOD_ADD(20200101010101, 10)
+FROM DUAL;
+```
+
+### 3.7 日起的格式化与解析
+
+```mysql
+# 格式化: 日期 --> 字符串
+# 解析: 字符串 --> 日期
+# 此时我们谈的是日期的显式格式化和解析。
+# 之前，我们接触过隐式的格式化和解析。
+SELECT *
+FROM employees
+WHERE hire_date = '1993-01-13';
+
+# 格式化:
+SELECT DATE_FORMAT(CURDATE(), '%Y-%M-%D'),
+       DATE_FORMAT(NOW(), '%Y-%m-%d'),
+       TIME_FORMAT(CURTIME(), '%H:%i:%s'),
+       DATE_FORMAT(NOW(), '%Y-%M-%D %h:%i:%S %W %w %T %r')
+FROM DUAL;
+
+# 解析: 格式化的逆过程
+SELECT STR_TO_DATE('2025-July-9th 09:44:41 Wednesday 3 09:44:41 09:44:41 AM', '%Y-%M-%D %h:%i:%S %W %w %T %r')
+FROM DUAL;
+
+SELECT GET_FORMAT(DATE, 'USA')
+FROM DUAL;
+
+SELECT DATE_FORMAT(CURDATE(), GET_FORMAT(DATE, 'USA'))
+FROM DUAL;
+```
+
