@@ -260,3 +260,83 @@ SELECT DATE_FORMAT(CURDATE(), GET_FORMAT(DATE, 'USA'))
 FROM DUAL;
 ```
 
+> 36 流程控制函数讲解
+
+## 4. 流程控制函数
+
+### 4.1 IF(VALUE, VALUE1, VALUE2)
+
+```mysql
+SELECT last_name, salary, IF(salary >= 6000, '高工资', '低工资') "details"
+FROM employees;
+
+SELECT last_name,
+       commission_pct,
+       IF(commission_pct IS NOT NULL, commission_pct, 0)                     "details",
+       salary * 12 * (1 + IF(commission_pct IS NOT NULL, commission_pct, 0)) "annual_sal"
+FROM employees;
+```
+
+### 4.2 IFNULL(VALUE1, VALUE2): 可以看作是IF(VALUE, VALUE1, VALUE2)的特殊情况
+
+```mysql
+
+SELECT last_name, commission_pct, IFNULL(commission_pct, 0) "details"
+FROM employees;
+```
+
+### 4.3 CASE WHEN ... THEN ... WHEN ... THEN ... ELSE ... END
+
+```mysql
+# 类似于Java的if ... else if ... else ... else结构。
+SELECT last_name,
+       salary,
+       CASE
+           WHEN salary >= 15000 THEN '白骨精'
+           WHEN salary >= 10000 THEN '潜力股'
+           WHEN salary >= 8000 THEN '小屌丝'
+           END "details",
+       department_id
+FROM employees;
+```
+
+### 4.4 CASE ... WHEN ... THEN ... WHEN ... THEN ... ELSE ... END
+
+```mysql
+# 类似于Java的switch ... case ...结果。
+    
+# 练习1: 演示有ELSE的情况
+# 查询部门号为10，20，30的员工信息，
+# 若部门号为10，则打印其工资的1.1倍，
+# 若部门号为20，则打印其工资的1.2倍，
+# 若部门号为30，则打印其工资的1.3倍，
+# 其它部门，打印其工资的1.4倍。
+SELECT employee_id,
+       last_name,
+       department_id,
+       salary,
+       CASE department_id
+           WHEN 10 THEN salary * 1.1
+           WHEN 20 THEN salary * 1.2
+           WHEN 30 THEN salary * 1.3
+           ELSE salary * 1.4 END "details"
+FROM employees;
+
+# 练习2: 演示没有ELSE的情况
+# 查询部门号为10，20，30的员工信息，
+# 若部门号为10，则打印其工资的1.1倍，
+# 若部门号为20，则打印其工资的1.2倍，
+# 若部门号为30，则打印其工资的1.3倍。
+SELECT employee_id,
+       last_name,
+       department_id,
+       salary,
+       CASE department_id
+           WHEN 10 THEN salary * 1.1
+           WHEN 20 THEN salary * 1.2
+           WHEN 30 THEN salary * 1.3
+           END "details"
+FROM employees
+WHERE department_id IN (10, 20, 30);
+```
+
