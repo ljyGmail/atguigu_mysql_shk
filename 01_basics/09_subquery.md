@@ -213,6 +213,7 @@ HAVING AVG(salary) <= ALL (SELECT AVG(salary)
 ```
 
 ### 5.3 空值问题
+
 ```mysql
 # 如果NOT IN后面的结果集中存在NULL，那么最终没有结果。
 SELECT last_name
@@ -229,3 +230,103 @@ SELECT 'a' != 'b' AND 'a' != NULL
 FROM DUAL;
 ```
 
+> 46 相关子查询案例分析
+
+## 6. 相关子查询
+
+### 6.1 相关子查询的案例
+
+```mysql
+# 回顾: 查询员工中工资大于本公司平均工资的员工的last_name,salary和其department_id。
+SELECT last_name, last_name, department_id
+FROM employees
+WHERE salary > (SELECT AVG(salary)
+                FROM employees);
+
+# 题目: 查询员工中工资大于本部门平均工资的员工的last_name,salary和其department_id。
+# 方式1: 使用相关子查询
+SELECT last_name, last_name, department_id
+FROM employees e1
+WHERE salary > (SELECT AVG(salary)
+                FROM employees e2
+                WHERE department_id = e1.department_id);
+
+# 方式2: 在FROM中声明子查询
+SELECT e.last_name, e.salary, e.department_id
+FROM employees e,
+     (SELECT department_id, AVG(salary) avg_sal
+      FROM employees
+      GROUP BY department_id) t_dept_avg_sal
+WHERE e.department_id = t_dept_avg_sal.department_id
+  AND e.salary > t_dept_avg_sal.avg_sal;
+
+# 在ORDER BY中使用子查询:
+# 题目: 查询员工的id,salary,按照department_name排序。
+SELECT employee_id, salary
+FROM employees e
+ORDER BY (SELECT d.department_name
+          FROM departments d
+          WHERE d.department_id = e.department_id) DESC;
+
+# 结论: 在SELECT中，除了GROUP BY和LIMIT之外，其它位置都可以声明子查询！
+/*
+SELECT ..., ..., ...(存在聚合函数)
+FROM ... (LEFT / RIGHT) JOIN ... ON 多表的连接条件
+(LEFT / RIGHT) JOIN ... ON ...
+WHERE 不包含聚合函数的过滤条件
+GROUP BY ..., ...
+HAVING 包含聚合函数的过滤条件
+ORDER BY ..., ... (ASC / DESC)
+LIMIT ..., ...
+ */
+
+# 题目：若employees表中employee_id与job_history表中employee_id相同的数目不小于2，
+# 输出这些相同id的员工的employee_id,last_name和其job_id。
+SELECT *
+FROM job_history;
+
+SELECT employee_id, last_name, job_id
+FROM employees e
+WHERE 2 <= (SELECT COUNT(*)
+            FROM job_history j
+            WHERE e.employee_id = j.employee_id);
+```
+
+### 6.2 EXISTS与NOT EXISTS关键字
+
+```mysql
+# 题目：查询公司管理者的employee_id，last_name，job_id，department_id信息。
+# 方式1: 自连接
+SELECT DISTINCT mgr.employee_id, mgr.last_name, mgr.job_id, mgr.department_id
+FROM employees emp
+         JOIN employees mgr
+              ON emp.manager_id = mgr.employee_id;
+
+# 方式2: 子查询
+SELECT employee_id, last_name, job_id, department_id
+FROM employees
+WHERE employee_id IN (SELECT DISTINCT manager_id
+                      FROM employees);
+
+# 方式3: 使用EXISTS
+SELECT employee_id, last_name, job_id, department_id
+FROM employees e1
+WHERE EXISTS(SELECT *
+             FROM employees e2
+             WHERE e1.employee_id = e2.manager_id);
+
+# 题目：查询departments表中，不存在于employees表中的部门的department_id和department_name。
+# 方式1: 使用外连接
+SELECT d.department_id, d.department_name
+FROM employees e
+         RIGHT JOIN departments d
+                    ON e.department_id = d.department_id
+WHERE e.department_id IS NULL;
+
+# 方式2: 使用NOT EXISTS
+SELECT department_id, department_name
+FROM departments d
+WHERE NOT EXISTS(SELECT *
+                 FROM employees e
+                 WHERE e.department_id = d.department_id);
+```
