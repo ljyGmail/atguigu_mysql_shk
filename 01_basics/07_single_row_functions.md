@@ -304,7 +304,7 @@ FROM employees;
 
 ```mysql
 # 类似于Java的switch ... case ...结果。
-    
+
 # 练习1: 演示有ELSE的情况
 # 查询部门号为10，20，30的员工信息，
 # 若部门号为10，则打印其工资的1.1倍，
@@ -338,5 +338,63 @@ SELECT employee_id,
            END "details"
 FROM employees
 WHERE department_id IN (10, 20, 30);
+```
+
+> 37 加密解密 MySQL信息函数等讲解
+
+## 5. 加密与解密
+
+```mysql
+# 下面的PASSWORD函数在MySQL8.0版本中被弃用了。
+/*
+SELECT PASSWORD('mysql')
+FROM DUAL;
+ */
+
+SELECT MD5('mysql'), SHA('mysql'), MD5(MD5('mysql'))
+FROM DUAL;
+
+# ENCODE()\DECODE()在MySQL8.0版本中也被弃用了。
+/*
+SELECT ENCODE('atguigu', 'mysql'), DECODE(ENCODE('atguigu', 'mysql'), 'mysql')
+FROM DUAL;
+ */
+```
+
+## 6. MySQL信息函数
+
+```mysql
+SELECT VERSION(),
+       CONNECTION_ID(),
+       DATABASE(),
+       SCHEMA(),
+       USER(),
+       CURRENT_USER(),
+       CHARSET('尚硅谷'),
+       COLLATION('尚硅谷')
+FROM DUAL;
+```
+
+## 7. 其它函数
+
+```mysql
+# FORMAT(value, n): 如果n的值小于或者等于0，则只保留整数部分。
+SELECT FORMAT(123.125, 2), FORMAT(123.125, 0), FORMAT(123.125, -2)
+FROM DUAL;
+
+SELECT CONV(16, 10, 2), CONV(8888, 10, 16), CONV(NULL, 10, 2)
+FROM DUAL;
+
+# 以“192.168.1.100”为例，计算方式为192乘以256的3次方，加上168乘以256的2次方，加上1乘以256，再加上100。
+SELECT INET_ATON('192.168.1.100'), INET_NTOA(3232235876)
+FROM DUAL;
+
+# BENCHMARK()用于测试表达式的执行效率。
+SELECT BENCHMARK(10000, MD5('mysql'))
+FROM DUAL;
+
+# CONVERT()可以实现字符集的转换。
+SELECT CHARSET('atguigu'), CHARSET(CONVERT('atguigu' USING 'utf8mb3'))
+FROM DUAL;
 ```
 
