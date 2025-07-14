@@ -121,7 +121,83 @@ WITH ROLLUP
 ORDER BY avg_sal ASC;
 ```
 
-## 3. HAVING的使用
+## 3. HAVING的使用 (作用: 用来过滤数据)
+
+```mysql
+# 需求: 查询各个部门中最高部门比10000高的部门信息。
+# 错误的写法!
+SELECT department_id, MAX(salary)
+FROM employees
+WHERE MAX(salary) > 10000
+GROUP BY department_id;
+
+# 要求1: 如果过滤条件中使用了聚合函数，则必须使用HAVING来替换WHERE。否则，报错。
+# 要求2: HAVING必须声明在GROUP BY的后面。
+
+# 正确的写法:
+SELECT department_id, MAX(salary)
+FROM employees
+GROUP BY department_id
+HAVING MAX(salary) > 10000;
+
+# 要求3: 开发中，我们使用HAVING的前提是SQL中使用了GROUP BY。
+
+# 练习: 查询部门id为10，20，30，40这4个部门中最高工资比10000高的部门信息。
+# 方式1: 推荐，执行效率高于方式2。
+SELECT department_id, MAX(salary)
+FROM employees
+WHERE department_id IN (10, 20, 30, 40)
+GROUP BY department_id
+HAVING MAX(salary) > 10000;
+
+# 方式2:
+SELECT department_id, MAX(salary)
+FROM employees
+GROUP BY department_id
+HAVING MAX(salary) > 10000
+   AND department_id IN (10, 20, 30, 40);
+
+# 结论: 当过滤条件中有聚合函数时，则此过滤条件必须声明在HAVING中。
+#      当过滤条件中没有聚合函数时，则此过滤条件声明在WHERE中或HAVING中都可以。但是，建议声明在WHERE中。
+
+/*
+WHERE与HAVING的对比
+
+1. 从适用范围来讲，HAVING的适用范围更广。
+2. 如果过滤条件中没有聚合函数，这种情况下，WHERE的执行效率高于HAVING。
+*/
+```
 
 ## 4. SQL底层执行原理
+
+### 4.1 SELECT语句的完整结构
+
+```mysql
+/*
+# SQL92语法:
+SELECT ..., ..., ... (存在聚合函数)
+FROM ..., ...
+WHERE 多表的连接条件 AND 不包含聚合函数的过滤条件
+GROUP BY ..., ...
+HAVING 包含聚合函数的过滤条件
+ORDER BY ..., ... (ASC / DESC)
+LIMIT ..., ...
+
+# SQL99语法:
+SELECT ..., ..., ... (存在聚合函数)
+FROM ... (LEFT / RIGHT) JOIN ... ON 多表的连接条件
+(LEFT / RIGHT) JOIN ... ON ...
+WHERE 不包含聚合函数的过滤条件
+GROUP BY ..., ...
+HAVING 包含聚合函数的过滤条件
+ORDER BY ..., ... (ASC / DESC)
+LIMIT ..., ...
+*/
+```
+
+### 4.2 SELECT语句的执行过程:
+
+```mysql
+# FROM ..., ... -> ON -> (LEFT / RIGHT JOIN) -> WHERE -> GROUP BY -> HAVING -> SELECT -> DISTINCT -> ORDER BY -> LIMIT
+```
 
