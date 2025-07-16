@@ -331,7 +331,7 @@ WHERE NOT EXISTS(SELECT *
                  WHERE e.department_id = d.department_id);
 ```
 
-> 47 第9章 子查询 课后练习1 
+> 47 第9章 子查询 课后练习1
 
 ```mysql
 # 1. 查询和Zlotkey相同部门的员工姓名和工资
@@ -469,7 +469,24 @@ FROM departments d
                LIMIT 0,1) t_dept_avg_sal
               ON d.department_id = t_dept_avg_sal.department_id;
 
+```
+
+> 48 第9章 子查询 课后练习2
+
+```mysql
 # 10. 查询平均工资最高的 job 信息
+# 方式1:
+SELECT *
+FROM jobs
+WHERE job_id = (SELECT job_id
+                FROM employees
+                GROUP BY job_id
+                HAVING AVG(salary) = (SELECT MAX(avg_sal)
+                                      FROM (SELECT AVG(salary) avg_sal
+                                            FROM employees
+                                            GROUP BY job_id) t_job_avg_sal));
+
+# 方式2:
 SELECT *
 FROM jobs
 WHERE job_id = (SELECT job_id
@@ -479,55 +496,175 @@ WHERE job_id = (SELECT job_id
                                            FROM employees
                                            GROUP BY job_id));
 
+# 方式3: LIMIT
+SELECT *
+FROM jobs
+WHERE job_id = (SELECT job_id
+                FROM employees
+                GROUP BY job_id
+                HAVING AVG(salary) = (SELECT AVG(salary) avg_sal
+                                      FROM employees
+                                      GROUP BY job_id
+                                      ORDER BY avg_sal DESC
+                                      LIMIT 1));
+
+# 方式4: LIMIT
+SELECT j.*
+FROM jobs j,
+     (SELECT job_id, AVG(salary) avg_sal
+      FROM employees
+      GROUP BY job_id
+      ORDER BY avg_sal DESC
+      LIMIT 1) t_job_avg_sal
+WHERE j.job_id = t_job_avg_sal.job_id;
+
 # 11. 查询平均工资高于公司平均工资的部门有哪些?
-SELECT department_id, AVG(salary)
+SELECT department_id
 FROM employees
+WHERE department_id IS NOT NULL
 GROUP BY department_id
 HAVING AVG(salary) > (SELECT AVG(salary) FROM employees);
 
 # 12. 查询出公司中所有 manager 的详细信息
-SELECT employee_id, last_name, manager_id
+# 方式1: 自连接
+SELECT DISTINCT mgr.employee_id, mgr.last_name, mgr.job_id, mgr.department_id
+FROM employees emp
+         JOIN employees mgr
+              ON emp.manager_id = mgr.employee_id;
+
+# 方式2: 子查询
+SELECT employee_id, last_name, job_id, department_id
 FROM employees
 WHERE employee_id IN (SELECT DISTINCT manager_id
-                      FROM employees
-                      WHERE manager_id IS NOT NULL);
+                      FROM employees);
+
+# 方式3: 使用EXISTS
+SELECT employee_id, last_name, job_id, department_id
+FROM employees e1
+WHERE EXISTS(SELECT *
+             FROM employees e2
+             WHERE e1.employee_id = e2.manager_id);
 
 # 13. 各个部门中 最高工资中最低的那个部门的 最低工资是多少?
-SELECT MAX(salary)
+# 方式1:
+SELECT MIN(salary)
 FROM employees
-GROUP BY department_id
-HAVING MAX(salary) <=
-           ALL (SELECT MAX(salary)
-                FROM employees
-                GROUP BY department_id);
+WHERE department_id =
+      (SELECT department_id
+       FROM employees
+       GROUP BY department_id
+       HAVING MAX(salary) = (SELECT MIN(max_sal)
+                             FROM (SELECT MAX(salary) max_sal
+                                   FROM employees
+                                   GROUP BY department_id) t_dept_max_sal));
+
+# 方式2:
+SELECT MIN(salary)
+FROM employees
+WHERE department_id = (SELECT department_id
+                       FROM employees
+                       GROUP BY department_id
+                       HAVING MAX(salary) <=
+                                  ALL (SELECT MAX(salary)
+                                       FROM employees
+                                       GROUP BY department_id));
+
+# 方式3: LIMIT
+SELECT MIN(salary)
+FROM employees
+WHERE department_id = (SELECT department_id
+                       FROM employees
+                       GROUP BY department_id
+                       HAVING MAX(salary) = (SELECT MAX(salary) max_sal
+                                             FROM employees
+                                             GROUP BY department_id
+                                             ORDER BY max_sal
+                                             LIMIT 0, 1));
+
+# 方式4: LIMIT
+SELECT MIN(e.salary)
+FROM employees e
+         JOIN
+     (SELECT department_id, MAX(salary) max_sal
+      FROM employees
+      GROUP BY department_id
+      ORDER BY max_sal ASC
+      LIMIT 1) t_dept_max_sal
+WHERE e.department_id = t_dept_max_sal.department_id;
 
 # 14. 查询平均工资最高的部门的 manager 的详细信息: last_name, department_id, email, salary
+# 方式1:
+SELECT last_name, department_id, email, salary
+FROM employees
+WHERE employee_id = ANY (SELECT DISTINCT manager_id
+                         FROM employees
+                         WHERE department_id = (SELECT department_id
+                                                FROM employees
+                                                GROUP BY department_id
+                                                HAVING AVG(salary) = (SELECT MAX(avg_sal)
+                                                                      FROM (SELECT AVG(salary) avg_sal
+                                                                            FROM employees
+                                                                            GROUP BY department_id) t_dept_avg_sal)));
+
+# 方式2:
+SELECT last_name, department_id, email, salary
+FROM employees
+WHERE employee_id = ANY (SELECT DISTINCT manager_id
+                         FROM employees
+                         WHERE department_id = (SELECT department_id
+                                                FROM employees
+                                                GROUP BY department_id
+                                                HAVING AVG(salary) >= ALL (SELECT AVG(salary)
+                                                                           FROM employees
+                                                                           GROUP BY department_id)));
+
+# 方式3:
 SELECT last_name, department_id, email, salary
 FROM employees
 WHERE employee_id IN (SELECT DISTINCT manager_id
-                      FROM employees
-                      WHERE department_id = (SELECT department_id
-                                             FROM employees
-                                             GROUP BY department_id
-                                             HAVING AVG(salary) >= ALL (SELECT AVG(salary)
-                                                                        FROM employees
-                                                                        GROUP BY department_id))
-                        AND manager_id IS NOT NULL);
+                      FROM employees e,
+                           (SELECT department_id, AVG(salary) avg_sal
+                            FROM employees
+                            GROUP BY department_id
+                            ORDER BY avg_sal DESC
+                            LIMIT 1) t_dept_avg_sal
+                      WHERE e.department_id = t_dept_avg_sal.department_id);
+
 
 # 15. 查询部门的部门号，其中不包括job_id是"ST_CLERK"的部门号
-SELECT DISTINCT department_id
-FROM employees e1
-WHERE NOT EXISTS(SELECT * FROM employees e2 WHERE job_id = 'ST_CLERK' AND e1.department_id = e2.department_id)
-  AND department_id IS NOT NULL;
+# 方式1:
+SELECT department_id
+FROM departments
+WHERE department_id NOT IN (SELECT DISTINCT department_id
+                            FROM employees
+                            WHERE job_id = 'ST_CLERK');
+
+# 方式2:
+SELECT department_id
+FROM departments d
+WHERE NOT EXISTS (SELECT * FROM employees WHERE job_id = 'ST_CLERK' AND department_id = d.department_id);
 
 # 16. 选择所有没有管理者的员工的last_name
+# 方式1: NOT EXISTS
+SELECT last_name
+FROM employees emp
+WHERE NOT EXISTS (SELECT * FROM employees mgr WHERE emp.manager_id = mgr.employee_id);
+
+# 方式2: IN
 SELECT last_name
 FROM employees
 WHERE employee_id IN (SELECT employee_id
                       FROM employees
                       WHERE manager_id IS NULL);
 
+
 # 17. 查询员工号、姓名、雇用时间、工资，其中员工的管理者为'De Haan'
+# 方式1: EXISTS
+SELECT employee_id, last_name, hire_date, salary
+FROM employees emp
+WHERE EXISTS(SELECT * FROM employees mgr WHERE emp.manager_id = mgr.employee_id AND mgr.last_name = 'De Haan');
+
+# 方式2: IN
 SELECT employee_id, last_name, hire_date, salary
 FROM employees
 WHERE manager_id IN (SELECT employee_id
@@ -535,30 +672,49 @@ WHERE manager_id IN (SELECT employee_id
                      WHERE last_name = 'De Haan');
 
 # 18. 查询各部门中工资比本部门平均工资高的员工的员工号, 姓名和工资(相关子查询)
+# 方式1: 相关子查询
+SELECT employee_id, last_name, salary
+FROM employees e1
+WHERE salary > (SELECT AVG(salary)
+                FROM employees e2
+                WHERE e2.department_id = e1.department_id);
+
+# 方式2: 多表连接
 SELECT e.employee_id, e.last_name, e.salary
-FROM employees e
-         JOIN
+FROM employees e,
      (SELECT department_id, AVG(salary) avg_sal
       FROM employees
-      WHERE department_id IS NOT NULL
       GROUP BY department_id) tbl_avg_sal
-     ON e.department_id = tbl_avg_sal.department_id
-WHERE e.salary > tbl_avg_sal.avg_sal;
+WHERE e.department_id = tbl_avg_sal.department_id
+  AND e.salary > tbl_avg_sal.avg_sal;
 
 # 19. 查询每个部门下的部门人数大于5的部门名称(相关子查询)
+# 方式1: 相关子查询`
+SELECT department_name
+FROM departments d
+WHERE 5 < (SELECT COUNT(*) FROM employees e WHERE e.department_id = d.department_id);
+
+# 方式2: IN
 SELECT department_name
 FROM departments
 WHERE department_id IN (SELECT department_id
                         FROM employees
-                        WHERE department_id IS NOT NULL
                         GROUP BY department_id
                         HAVING COUNT(*) > 5);
 
 # 20. 查询每个国家下的部门个数大于2的国家编号(相关子查询)
-SELECT c.country_id, COUNT(*)
-FROM countries c
-         JOIN locations l ON c.country_id = l.country_id
-         JOIN departments d ON l.location_id = d.location_id
-GROUP BY c.country_id
-HAVING COUNT(*) > 2;
+SELECT country_id
+FROM locations l
+WHERE 2 < (SELECT COUNT(*)
+           FROM departments d
+           WHERE l.location_id = d.location_id);
+
+/*
+子查询的编写技巧(或步骤): 1️⃣从里往外写 2️⃣从外往里写
+
+如何选择?
+1️⃣如果子查询相对较简单，建议从外往里写。一旦子查询结构较复杂，则建议从里往外写。
+2️⃣如果是相关子查询的话，通常都是从外往里写。
+*/
 ```
+
