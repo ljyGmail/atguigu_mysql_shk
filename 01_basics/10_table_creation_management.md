@@ -295,3 +295,30 @@ ROLLBACK;
 SELECT *
 FROM myemp3;
 ```
+
+> 53 阿里MySQL命名规范及MySQL8 DDL的原子化
+
+## 10. 测试MySQL8.0的新特性: DDL的原子化
+
+```mysql
+CREATE DATABASE IF NOT EXISTS mytest;
+
+SHOW DATABASES;
+
+USE mytest;
+
+CREATE TABLE book1
+(
+    book_id   INT,
+    book_name VARCHAR(255)
+);
+
+SHOW TABLES;
+
+DROP TABLE book1, book2;
+
+SHOW TABLES;
+
+DROP DATABASE IF EXISTS mytest;
+```
+
