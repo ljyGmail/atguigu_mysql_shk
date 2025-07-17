@@ -84,7 +84,7 @@ USE atguigudb;
 SHOW CREATE DATABASE atguigudb;
 # 默认使用的是utf8
 # 方式1: "白手起家"的方式。
-   
+
 # 需要用户具备创建表的权限
 CREATE TABLE IF NOT EXISTS myemp1
 (
@@ -149,4 +149,89 @@ WHERE FALSE; # 山无棱，天地合，乃敢与君绝。
 SELECT *
 FROM employees_blank;
 ```
+
+> 51 修改表 重命名表 删除表 清空表
+
+## 3. 修改表 --> ALTER TABLE
+
+```mysql
+DESC myemp1;
+```
+
+### 3.1 添加一个字段
+
+```mysql
+ALTER TABLE myemp1
+    ADD salary DOUBLE(10, 2); # 默认添加到表中的最后一个字段的位置
+
+ALTER TABLE myemp1
+    ADD phone_number VARCHAR(20) FIRST; # 添加一个字段phone_number，并将其添加成为表的第一个字段
+
+ALTER TABLE myemp1
+    ADD email VARCHAR(45) AFTER emp_name; # 添加一个字段email，并将其添加到emp_name字段到后面
+```
+
+### 3.2 修改一个字段: 数据类型、长度、默认值(略)
+
+```mysql
+ALTER TABLE myemp1
+    MODIFY emp_name VARCHAR(25);
+
+ALTER TABLE myemp1
+    MODIFY emp_name VARCHAR(35) DEFAULT 'aaa';
+```
+
+### 3.3 重命名一个字段
+
+```mysql
+ALTER TABLE myemp1
+    CHANGE salary monthly_salary DOUBLE(10, 2);
+
+ALTER TABLE myemp1
+    CHANGE email my_email VARCHAR(50);
+```
+
+### 3.4 删除一个字段
+
+```mysql
+ALTER TABLE myemp1
+    DROP COLUMN my_email;
+```
+
+## 4. 重命名表
+
+```mysql
+# 方式1:
+RENAME TABLE myemp1 TO myemp11;
+
+SHOW TABLES;
+DESC myemp11;
+
+# 方式2:
+ALTER TABLE myemp2 RENAME TO myemp12;
+
+DESC myemp12;
+```
+
+## 5. 删除表
+
+```mysql
+# 不光将表结构删除掉，同时表中的数据也删除掉，释放表空间
+DROP TABLE IF EXISTS myemp2;
+
+DROP TABLE IF EXISTS myemp12;
+```
+
+## 6. 清空表
+
+```mysql
+# 清空表，表示清空表中的所有数据，但是表结构保留。
+SELECT *
+FROM employees_copy;
+
+TRUNCATE TABLE employees_copy;
+
+DESC employees_copy;
+```
+
 
