@@ -234,4 +234,64 @@ TRUNCATE TABLE employees_copy;
 DESC employees_copy;
 ```
 
+> 52 DCL中COMMIT和ROLLBACK的使用
 
+## 7. DCL中 COMMIT 和 ROLLBACK
+
+- COMMIT: 提交数据。一旦执行COMMIT，则数据就被永久地保存在数据库中，意味着数据不可以回滚。
+- ROLLBACK: 回滚数据。一旦执行ROLLBACK，则可以实现数据的回滚。回滚到最近一次的COMMIT之后。
+
+## 8. 对比 TRUNCATE TABLE 和 DELETE FROM
+
+- 相同点: 都可以实现对表中所有数据的删除，同时保留表的结构。
+- 不同点:
+    - TRUNCATE TABLE: 一旦执行此操作，表数据全部清除。同时，数据是不可以回滚的。
+    - DELETE FROM: 一旦执行此操作，表数据可以全部清除(不带WHERE)。同时，数据是可以实现回滚的。
+
+## 9. DDL 和 DML的说明
+
+1. DDL的操作一旦执行，就不可回滚。指令SET AUTOCOMMIT = FALSE对DDL操作实效。  
+   (因为在执行完DDL操作之后，一定会执行一次COMMIT。而此COMMIT操作不受SET AUTOCOMMIT = FALSE影响的。)
+2. DML的操作默认情况下，一旦执行，也是不可回滚的。但是，如果在执行DML之前，执行了SET AUTOCOMMIT = FALSE，  
+   则执行的DML操作就可以实现回滚。
+
+```mysql
+# 演示: DELETE FROM
+# 1)
+COMMIT;
+# 2)
+SELECT *
+FROM myemp3;
+# 3)
+SET AUTOCOMMIT = FALSE;
+# 4)
+DELETE
+FROM myemp3;
+# 5)
+SELECT *
+FROM myemp3;
+# 6)
+ROLLBACK;
+# 7)
+SELECT *
+FROM myemp3;
+
+# 演示: TRUNCATE TABLE
+# 1)
+COMMIT;
+# 2)
+SELECT *
+FROM myemp3;
+# 3)
+SET AUTOCOMMIT = FALSE;
+# 4)
+TRUNCATE TABLE myemp3;
+# 5)
+SELECT *
+FROM myemp3;
+# 6)
+ROLLBACK;
+# 7)
+SELECT *
+FROM myemp3;
+```
