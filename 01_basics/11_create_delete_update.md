@@ -327,3 +327,291 @@ ORDER BY CHAR_LENGTH(REPLACE(name, ' ', '')) DESC
 LIMIT 1;
 ```
 
+> 58 第11章 增删改 课后练习
+
+## 课后练习
+
+```mysql
+# 练习1
+# 1. 创建数据库dbtest11
+CREATE DATABASE IF NOT EXISTS dbtest11 CHARACTER SET 'utf8';
+
+USE dbtest11;
+
+# 2. 运行以下脚本创建表my_employees
+CREATE TABLE IF NOT EXISTS my_employees
+(
+    id         INT(10),
+    first_name VARCHAR(10),
+    last_name  VARCHAR(10),
+    userid     VARCHAR(10),
+    salary     DOUBLE(10, 2)
+);
+
+CREATE TABLE IF NOT EXISTS users
+(
+    id            INT,
+    userid        VARCHAR(10),
+    department_id INT
+);
+
+SHOW TABLES;
+
+# 3. 显示表my_employees的结构
+DESC my_employees;
+
+# 4. 向my_employees表中插入下列数据
+```
+
+![img.png](images/58_a_practice_1_4.png)
+
+```mysql
+# 方式1:
+INSERT INTO my_employees(id, first_name, last_name, userid, salary)
+VALUES (1, 'patel', 'Ralph', 'Rpatel', 895),
+       (2, 'Dancs', 'Betty', 'Bdancs', 860),
+       (3, 'Biri', 'Ben', 'Bbiri', 1100),
+       (4, 'Newman', 'Chad', 'Cnewman', 750),
+       (5, 'Ropeburn', 'Audrey', 'Aropebur', 1550);
+
+# 方式2:
+INSERT INTO my_employees(id, first_name, last_name, userid, salary)
+SELECT 1, 'patel', 'Ralph', 'Rpatel', 895
+UNION ALL
+SELECT 2, 'Dancs', 'Betty', 'Bdancs', 860
+UNION ALL
+SELECT 3, 'Biri', 'Ben', 'Bbiri', 1100
+UNION ALL
+SELECT 4, 'Newman', 'Chad', 'Cnewman', 750
+UNION ALL
+SELECT 5, 'Ropeburn', 'Audrey', 'Aropebur', 1550;
+
+SELECT *
+FROM my_employees;
+
+# 5. 向users表中插入数据
+```
+
+![img_1.png](images/58_b_practice_1_5.png)
+
+```mysql
+INSERT INTO users(id, userid, department_id)
+VALUES (1, 'Rpatel', 10),
+       (2, 'Bdancs', 10),
+       (3, 'Bbiri', 20),
+       (4, 'Cnewman', 30),
+       (5, 'Aropebur', 40);
+
+SELECT *
+FROM users;
+
+# 6. 将3号员工的last_name修改为“drelxer”
+UPDATE my_employees
+SET last_name='drelxer'
+WHERE id = 3;
+
+SELECT *
+FROM my_employees;
+
+# 7. 将所有工资少于900的员工的工资修改为1000
+UPDATE my_employees
+SET salary=1000
+WHERE salary < 900;
+
+SELECT *
+FROM my_employees;
+
+# 8. 将userid为Bbiri的user表和my_employees表的记录全部删除
+# 方式1:
+DELETE
+FROM users
+WHERE userid = 'Bbiri';
+
+DELETE
+FROM my_employees
+WHERE userid = 'Bbiri';
+
+# 方式2:
+DELETE m,u
+FROM my_employees m
+         JOIN users u
+              ON m.userid = u.userid
+WHERE m.userid = 'Bbiri';
+
+SELECT *
+FROM my_employees;
+
+SELECT *
+FROM users;
+
+# 9. 删除my_employees、users表所有数据
+DELETE
+FROM my_employees;
+
+DELETE
+FROM users;
+
+# 10. 检查所作的修正
+SELECT *
+FROM my_employees;
+
+SELECT *
+FROM users;
+
+# 11. 清空表my_employees
+TRUNCATE TABLE my_employees;
+
+SELECT *
+FROM my_employees;
+
+##############################
+# 练习2
+# 1. 使用现有数据库dbtest11
+USE dbtest11;
+
+# 2. 创建表格pet
+```
+
+![img.png](images/58_c_practice_2_2.png)
+
+```mysql
+CREATE TABLE IF NOT EXISTS pet
+(
+    name    VARCHAR(20) COMMENT '宠物名称',
+    owner   VARCHAR(20) COMMENT '宠物主人',
+    species VARCHAR(20) COMMENT '种类',
+    sex     CHAR(1) COMMENT '性别',
+    birth   YEAR COMMENT '出生日期',
+    death   YEAR COMMENT '死亡日期'
+);
+
+SHOW TABLES;
+
+DESC pet;
+
+# 3. 添加记录
+```
+
+![img_1.png](images/58_d_practice_2_3.png)
+
+```mysql
+INSERT INTO pet (name, owner, species, sex, birth, death)
+VALUES ('Fluffy', 'harold', 'Cat', 'f', '2003', '2010'),
+       ('Claws', 'gwen', 'Cat', 'm', '2004', NULL),
+       ('Buffy', NULL, 'Dog', 'f', '2009', NULL),
+       ('Fang', 'benny', 'Dog', 'm', '2000', NULL),
+       ('bowser', 'diane', 'Dog', 'm', '2003', '2009'),
+       ('Chirpy', NULL, 'Bird', 'f', '2008', NULL);
+
+SELECT *
+FROM pet;
+
+# 4. 添加字段:主人的生日owner_birth DATE类型。
+DESC pet;
+
+ALTER TABLE pet
+    ADD COLUMN owner_birth DATE AFTER owner;
+
+DESC pet;
+
+# 5. 将名称为Claws的猫的主人改为kevin
+UPDATE pet
+SET owner='kevin'
+WHERE name = 'Claws'
+  AND species = 'Cat';
+
+SELECT *
+FROM pet;
+
+# 6. 将没有死的狗的主人改为duck
+UPDATE pet
+SET owner='duck'
+WHERE species = 'Dog'
+  AND death IS NULL;
+
+SELECT *
+FROM pet;
+
+# 7. 查询没有主人的宠物的名字；
+SELECT name
+FROM pet
+WHERE owner IS NULL;
+
+# 8. 查询已经死了的cat的姓名，主人，以及去世时间；
+SELECT name, owner, death
+FROM pet
+WHERE species = 'cat'
+  AND death IS NOT NULL;
+
+# 9. 删除已经死亡的狗
+SELECT *
+FROM pet;
+
+DELETE
+FROM pet
+WHERE species = 'Dog'
+  AND death IS NOT NULL;
+
+SELECT *
+FROM pet;
+
+# 10. 查询所有宠物信息
+SELECT *
+FROM pet;
+
+##############################
+# 练习3
+# 1. 使用已有的数据库dbtest11
+USE dbtest11;
+
+# 2. 创建表employee，并添加记录
+```
+![img_2.png](images/58_e_practice_3_2.png)
+
+```mysql
+CREATE TABLE IF NOT EXISTS employee
+(
+    id     INT,
+    name   VARCHAR(15),
+    sex    CHAR(1),
+    tel    VARCHAR(25),
+    addr   VARCHAR(35),
+    salary DOUBLE(10, 2)
+);
+
+DESC employee;
+
+INSERT INTO employee (id, name, sex, tel, addr, salary)
+VALUES (10001, '张一一', '男', '13456789000', '山东青岛', 1001.58),
+       (10002, '刘小红', '女', '13454319000', '河北保定', 1201.21),
+       (10003, '李四', '男', '0751-1234567', '广东佛山', 1004.11),
+       (10004, '刘小强', '男', '0755-5555555', '广东深圳', 1501.23),
+       (10005, '王艳', '女', '020-1232133', '广东广州', 1405.16);
+
+SELECT *
+FROM employee;
+
+# 3. 查询出薪资在1200~1300之间的员工信息。
+SELECT *
+FROM employee
+WHERE salary BETWEEN 1200 AND 1300;
+
+# 4. 查询出姓“刘”的员工的工号，姓名，家庭住址。
+SELECT id, name, addr
+FROM employee
+WHERE name LIKE '刘%';
+
+# 5. 将“李四”的家庭住址改为“广东韶关”
+UPDATE employee
+SET addr='广东韶关'
+WHERE name = '李四';
+
+SELECT *
+FROM employee;
+
+# 6. 查询出名字中带“小”的员工
+SELECT *
+FROM employee
+WHERE name LIKE '%小%';
+```
+
