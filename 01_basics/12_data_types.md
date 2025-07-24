@@ -439,3 +439,185 @@ FROM temp_time;
 SELECT UNIX_TIMESTAMP();
 ```
 
+> 63 文本字符串类型(含ENUM、SET)讲解
+
+## 7. 文本字符串类型
+
+### 7.1 CHAR类型
+
+```mysql
+CREATE TABLE IF NOT EXISTS test_char1
+(
+    c1 CHAR,
+    c2 CHAR(5)
+);
+
+DESC test_char1;
+
+INSERT INTO test_char1 (c1)
+VALUES ('a');
+
+# 错误: Data too long for column 'c1' at row 1
+INSERT INTO test_char1 (c1)
+VALUES ('ab');
+
+INSERT INTO test_char1 (c2)
+VALUES ('ab');
+
+INSERT INTO test_char1 (c2)
+VALUES ('hello');
+
+INSERT INTO test_char1 (c2)
+VALUES ('尚');
+
+INSERT INTO test_char1 (c2)
+VALUES ('硅谷');
+
+INSERT INTO test_char1 (c2)
+VALUES ('尚硅谷教育');
+
+# 错误: Data too long for column 'c2' at row 1
+INSERT INTO test_char1 (c2)
+VALUES ('尚硅谷IT教育');
+
+SELECT *
+FROM test_char1;
+
+SELECT CONCAT(c2, '***')
+FROM test_char1;
+
+INSERT INTO test_char1 (c2)
+VALUES ('ab  ');
+
+SELECT CHAR_LENGTH(c2)
+FROM test_char1;
+```
+
+### 7.2 VARCHAR类型
+
+```mysql
+CREATE TABLE test_varchar1
+(
+    name VARCHAR(10) # 这里必须指明长度，否则报错
+);
+
+# 错误: Column length too big for column 'name' (max = 21845); use Blob or TEXT instead
+CREATE TABLE test_varchar2
+(
+    name VARCHAR(65535)
+);
+
+CREATE TABLE test_varchar3
+(
+    name VARCHAR(5)
+);
+
+INSERT INTO test_varchar3(name)
+VALUES ('尚硅谷'),
+       ('尚硅谷教育');
+
+# 错误: Data too long for column 'name' at row 1
+INSERT INTO test_varchar3 (name)
+VALUES ('尚硅谷IT教育');
+```
+
+### 7.3 TEXT类型
+
+```mysql
+CREATE TABLE test_text
+(
+    tx TEXT
+);
+
+INSERT INTO test_text (tx)
+VALUES ('atguigu   ');
+
+SELECT CHAR_LENGTH(tx)
+FROM test_text;
+
+SELECT *
+FROM test_text;
+```
+
+## 8. ENUM类型
+
+```mysql
+CREATE TABLE test_enum
+(
+    season ENUM ('春','夏', '秋','冬', 'unknown')
+);
+
+INSERT INTO test_enum (season)
+VALUES ('春'),
+       ('秋');
+
+# 错误: Data truncated for column 'season' at row 1
+INSERT INTO test_enum (season)
+VALUES ('春,秋');
+
+INSERT INTO test_enum (season)
+VALUES ('unknown');
+
+# 忽略大小写
+INSERT INTO test_enum (season)
+VALUES ('UNKNOWN');
+
+# 也可以使用索引进行枚举元素的调用
+INSERT INTO test_enum (season)
+VALUES (1),
+       ('3');
+
+# 没有限制非空的情况下，可以添加NULL值
+INSERT INTO test_enum (season)
+VALUES (NULL);
+
+# 错误: Data truncated for column 'season' at row 1
+INSERT INTO test_enum (season)
+VALUES ('人');
+
+SELECT *
+FROM test_enum;
+```
+
+## 9. SET类型
+
+```mysql
+CREATE TABLE test_set
+(
+    s SET ('A','B','C')
+);
+
+INSERT INTO test_set (s)
+VALUES ('A'),
+       ('A,B');
+
+# 插入重复的SET类型成员时，MySQL会自动删除重复的成员
+INSERT INTO test_set (s)
+VALUES ('A,B,C,A');
+
+# 向SET类型的字段插入SET成员中不存在的值时，MySQL会抛出错误
+# 错误: Data truncated for column 's' at row 1
+INSERT INTO test_set (s)
+VALUES ('A,B,C,D');
+
+SELECT *
+FROM test_set;
+
+CREATE TABLE temp_mul
+(
+    gender ENUM ('男','女'),
+    hobby  SET ('吃饭', '睡觉', '打豆豆', '写代码')
+);
+
+INSERT INTO temp_mul(gender, hobby)
+VALUES ('男', '睡觉,打豆豆');
+
+# 错误: Data truncated for column 'gender' at row 1
+INSERT INTO temp_mul(gender, hobby)
+VALUES ('男,女', '睡觉,打豆豆');
+
+SELECT *
+FROM temp_mul;
+```
+
+
