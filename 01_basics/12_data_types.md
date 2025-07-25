@@ -603,7 +603,7 @@ VALUES ('A,B,C,D');
 SELECT *
 FROM test_set;
 
-CREATE TABLE temp_mul
+CREATE TABLE IF NOT EXISTS temp_mul
 (
     gender ENUM ('男','女'),
     hobby  SET ('吃饭', '睡觉', '打豆豆', '写代码')
@@ -620,4 +620,74 @@ SELECT *
 FROM temp_mul;
 ```
 
+> 64 二进制类型与JSON类型讲解
+
+## 10. 二进制字符串类型
+
+### 10.1 BINARY与VARBINARY类型
+
+```mysql
+CREATE TABLE IF NOT EXISTS test_binary
+(
+    f1 BINARY,
+    f2 BINARY(3),
+    # f3 VARBINARY,
+    f4 VARBINARY(10)
+);
+
+DESC test_binary;
+
+INSERT INTO test_binary (f1, f2)
+VALUES ('a', 'abc');
+
+# Data too long for column 'f1' at row 1
+INSERT INTO test_binary (f1)
+VALUES ('ab');
+
+INSERT INTO test_binary (f2, f4)
+VALUES ('ab', 'ab');
+
+SELECT *
+FROM test_binary;
+
+SELECT LENGTH(f2), LENGTH(f4)
+FROM test_binary;
+```
+
+### 10.2 BLOB类型
+
+```mysql
+CREATE TABLE IF NOT EXISTS test_blob
+(
+    id  INT,
+    img MEDIUMBLOB
+);
+
+INSERT INTO test_blob (id)
+VALUES (1001);
+
+SELECT *
+FROM test_blob;
+```
+
+## 11. JSON类型
+
+```mysql
+CREATE TABLE IF NOT EXISTS test_json
+(
+    js JSON
+);
+
+INSERT INTO test_json (js)
+VALUES ('{"name":"songhk", "age":18, "address": {"province": "Beijing", "city": "Beijing"}}');
+
+SELECT *
+FROM test_json;
+
+SELECT js -> '$.name'             AS name,
+       js -> '$.age'              AS age,
+       js -> '$.address.province' AS province,
+       js -> '$.address.city'     AS city
+FROM test_json;
+```
 
