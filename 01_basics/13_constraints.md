@@ -408,3 +408,113 @@ ALTER TABLE test6
     DROP PRIMARY KEY;
 ```
 
+> 70 AUTO_INCREMENT
+
+## 6. 自增长列: AUTO_INCREMENT
+
+### 6.1 在CREATE TABLE时添加
+
+```mysql
+CREATE TABLE IF NOT EXISTS test7
+(
+    id        INT PRIMARY KEY AUTO_INCREMENT,
+    last_name VARCHAR(15)
+);
+
+# 开发中，一旦主键作用的字段上声明有AUTO_INCREMENT，则我们在添加数据时，就不要给主键
+# 对应的字段去赋值了。
+INSERT INTO test7 (last_name)
+VALUES ('Tom');
+
+# 当我们向主键(含auto_increment)的字段上添加0或null时，实际上会自动地往上添加指定的字段的字符
+INSERT INTO test7 (id, last_name)
+VALUES (0, 'Tom');
+
+INSERT INTO test7 (id, last_name)
+VALUES (NULL, 'Tom');
+
+INSERT INTO test7 (id, last_name)
+VALUES (10, 'Tom');
+
+INSERT INTO test7 (id, last_name)
+VALUES (-10, 'Tom');
+
+SELECT *
+FROM test7;
+```
+
+### 6.2 在ALTER TABLE时添加
+
+```mysql
+CREATE TABLE IF NOT EXISTS test8
+(
+    id        INT PRIMARY KEY,
+    last_name VARCHAR(15)
+);
+
+DESC test8;
+
+ALTER TABLE test8
+    MODIFY id INT AUTO_INCREMENT;
+```
+
+### 6.3 在ALTER TABLE时删除
+
+```mysql
+ALTER TABLE test8
+    MODIFY id INT;
+
+DESC test8;
+```
+
+### 6.4 MySQL8.0新特性: 自增变量的持久化
+
+```mysql
+# 在MySQL 5.7中演示
+
+# 在MySQL 8.0中演示
+CREATE TABLE test9
+(
+    id INT PRIMARY KEY AUTO_INCREMENT
+);
+
+INSERT INTO test9(id)
+VALUES (0),
+       (0),
+       (0),
+       (0);
+
+SELECT *
+FROM test9;
+
+DELETE
+FROM test9
+WHERE id = 4;
+
+SELECT *
+FROM test9;
+
+INSERT INTO test9 (id)
+VALUES (0);
+
+SELECT *
+FROM test9;
+
+DELETE
+FROM test9
+WHERE id = 5;
+
+SELECT *
+FROM test9;
+
+# 重启服务器
+INSERT INTO test9 (id)
+VALUES (0);
+
+SELECT *
+FROM test9;
+
+# MySQL8将自增主键的计数器持久化到重做日志中。每次计数器发生改变，都会将其写入到重做日志中。
+# 如果数据库重启，InnoDB会根据日志中信息来初始化计数器的内存值。
+# 同样的实验在MySQL5.7中进行，重启数据库服务器后插入数据的ID只能是当前最大ID的值+1。
+```
