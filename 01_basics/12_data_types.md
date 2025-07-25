@@ -691,3 +691,7 @@ SELECT js -> '$.name'             AS name,
 FROM test_json;
 ```
 
+> 65 小结及类型使用建议
+
+![img.png](images/65_data_type_usage.png)
+
