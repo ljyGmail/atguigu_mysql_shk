@@ -475,7 +475,7 @@ DESC test8;
 # 在MySQL 8.0中演示
 CREATE TABLE test9
 (
-    id INT PRIMARY KEY AUTO_INCREMENT
+  id INT PRIMARY KEY AUTO_INCREMENT
 );
 
 INSERT INTO test9(id)
@@ -518,3 +518,190 @@ FROM test9;
 # 如果数据库重启，InnoDB会根据日志中信息来初始化计数器的内存值。
 # 同样的实验在MySQL5.7中进行，重启数据库服务器后插入数据的ID只能是当前最大ID的值+1。
 ```
+
+> 71 外键约束的使用
+
+## 7. 外键约束 (Foreign Key)
+
+### 7.1 在CREATE TABLE时添加
+
+```mysql
+# 主表和从表: 父表和子表
+
+# 1️⃣ 先创建主表
+CREATE TABLE dept1
+(
+    dept_id   INT,
+    dept_name VARCHAR(15)
+);
+
+# 2️⃣ 再创建从表
+CREATE TABLE emp1
+(
+    emp_id        INT PRIMARY KEY AUTO_INCREMENT,
+    emp_name      VARCHAR(15),
+    department_id INT,
+    # 表级约束
+    CONSTRAINT fk_emp1_dept_id FOREIGN KEY (department_id) REFERENCES dept1 (dept_id)
+);
+
+# 上述操作报错，因为主表中的dept_id上没有主键约束或唯一性约束。
+# 3️⃣ 添加主键约束
+ALTER TABLE dept1
+    ADD PRIMARY KEY (dept_id);
+
+DESC dept1;
+
+# 4️⃣ 再创建从表
+CREATE TABLE emp1
+(
+    emp_id        INT PRIMARY KEY AUTO_INCREMENT,
+    emp_name      VARCHAR(15),
+    department_id INT,
+    # 表级约束
+    CONSTRAINT fk_emp1_dept_id FOREIGN KEY (department_id) REFERENCES dept1 (dept_id)
+);
+
+DESC emp1;
+
+SELECT *
+FROM information_schema.TABLE_CONSTRAINTS
+WHERE TABLE_NAME = 'emp1';
+```
+
+### 7.2 演示外键的效果
+
+```mysql
+# 添加失败
+INSERT INTO emp1 (emp_id, emp_name, department_id)
+VALUES (1001, 'Tom', 10);
+
+# 在主表中插入10号部门的数据
+INSERT INTO dept1 (dept_id, dept_name)
+VALUES (10, 'IT');
+
+# 在主表dept1中添加了10号部门以后，就可以在从表中添加10号部门的员工了
+INSERT INTO emp1 (emp_id, emp_name, department_id)
+VALUES (1001, 'Tom', 10);
+
+# 删除失败
+DELETE
+FROM dept1
+WHERE dept_id = 10;
+
+# 更新失败
+UPDATE dept1
+SET dept_id=20
+WHERE dept_id = 10;
+```
+
+### 7.3 在ALTER TABLE时添加外键约束
+
+```mysql
+CREATE TABLE dept2
+(
+    dept_id   INT PRIMARY KEY,
+    dept_name VARCHAR(15)
+);
+
+CREATE TABLE emp2
+(
+    emp_id        INT PRIMARY KEY AUTO_INCREMENT,
+    emp_name      VARCHAR(15),
+    department_id INT
+);
+
+SELECT *
+FROM information_schema.TABLE_CONSTRAINTS
+WHERE TABLE_NAME = 'emp2';
+
+ALTER TABLE emp2
+    ADD CONSTRAINT fk_emp2_dept_id FOREIGN KEY (department_id) REFERENCES dept2 (dept_id);
+```
+
+### 7.4 约束等级
+
+- Cascade方式: 在父表上update/delete记录时，同步update/delete掉子表的匹配记录
+- Set null方式: 在父表上update/delete记录时，将子表上匹配记录的列设为null，但是要注意子
+  表的外键列不能为not null
+- No action方式: 如果子表中有匹配的记录，则不允许对父表对应候选键进行update/delete操作
+- Restrict方式: 同no action， 都是立即检查外键约束
+- Set default方式: （在可视化工具SQLyog中可能显示空白）：父表有变更时，子表将外键列设置
+  成一个默认的值，但Innodb不能识别
+
+```mysql
+# 演示: ON UPDATE CASCADE ON DELETE SET NULL
+CREATE TABLE dept
+(
+  did   INT PRIMARY KEY, # 部门编号
+  dname VARCHAR(50)      # 部门名称
+);
+
+CREATE TABLE emp
+(
+  eid    INT PRIMARY KEY, # 员工编号
+  ename  VARCHAR(5),      # 员工姓名
+  deptid INT,             # 员工所在的部门
+  FOREIGN KEY (deptid) REFERENCES dept (did) ON UPDATE CASCADE ON DELETE SET NULL
+  # 把修改操作设置为级联修改等级，把删除操作设置为SET NULL等级
+);
+
+SELECT *
+FROM information_schema.TABLE_CONSTRAINTS
+WHERE TABLE_NAME = 'emp';
+
+INSERT INTO dept (did, dname)
+VALUES (1001, '教学部'),
+       (1002, '财务部'),
+       (1003, '咨询部');
+
+INSERT INTO emp (eid, ename, deptid) # 在添加这条记录时，要求部门表有1001部门
+VALUES (1, '张三', 1001),
+       (2, '李四', 1001),
+       (3, '王五', 1002);
+
+SELECT *
+FROM dept;
+
+SELECT *
+FROM emp;
+
+UPDATE dept
+SET did=1004
+WHERE did = 1002;
+
+DELETE
+FROM dept
+WHERE did = 1004;
+
+# 结论: 对于外键约束，最好是采用: `ON UPDATE CASCADE ON DELETE RESTRICT`的方式
+```
+
+### 7.5 删除外键的约束
+
+```mysql
+# 一个表中可以声明有多个外键约束
+USE atguigudb;
+
+SELECT *
+FROM information_schema.TABLE_CONSTRAINTS
+WHERE TABLE_NAME = 'employees';
+
+USE dbtest13;
+
+SELECT *
+FROM information_schema.TABLE_CONSTRAINTS
+WHERE TABLE_NAME = 'emp1';
+
+# 删除外键约束
+ALTER TABLE emp1
+  DROP FOREIGN KEY fk_emp1_dept_id;
+
+# 再手动删除外键约束对应的普通索引
+SHOW INDEX FROM emp1;
+
+ALTER TABLE emp1
+  DROP INDEX fk_emp1_dept_id;
+```
+
+
