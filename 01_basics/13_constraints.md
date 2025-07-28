@@ -475,7 +475,7 @@ DESC test8;
 # 在MySQL 8.0中演示
 CREATE TABLE test9
 (
-  id INT PRIMARY KEY AUTO_INCREMENT
+    id INT PRIMARY KEY AUTO_INCREMENT
 );
 
 INSERT INTO test9(id)
@@ -633,17 +633,17 @@ ALTER TABLE emp2
 # 演示: ON UPDATE CASCADE ON DELETE SET NULL
 CREATE TABLE dept
 (
-  did   INT PRIMARY KEY, # 部门编号
-  dname VARCHAR(50)      # 部门名称
+    did   INT PRIMARY KEY, # 部门编号
+    dname VARCHAR(50)      # 部门名称
 );
 
 CREATE TABLE emp
 (
-  eid    INT PRIMARY KEY, # 员工编号
-  ename  VARCHAR(5),      # 员工姓名
-  deptid INT,             # 员工所在的部门
-  FOREIGN KEY (deptid) REFERENCES dept (did) ON UPDATE CASCADE ON DELETE SET NULL
-  # 把修改操作设置为级联修改等级，把删除操作设置为SET NULL等级
+    eid    INT PRIMARY KEY, # 员工编号
+    ename  VARCHAR(5),      # 员工姓名
+    deptid INT,             # 员工所在的部门
+    FOREIGN KEY (deptid) REFERENCES dept (did) ON UPDATE CASCADE ON DELETE SET NULL
+    # 把修改操作设置为级联修改等级，把删除操作设置为SET NULL等级
 );
 
 SELECT *
@@ -695,13 +695,86 @@ WHERE TABLE_NAME = 'emp1';
 
 # 删除外键约束
 ALTER TABLE emp1
-  DROP FOREIGN KEY fk_emp1_dept_id;
+    DROP FOREIGN KEY fk_emp1_dept_id;
 
 # 再手动删除外键约束对应的普通索引
 SHOW INDEX FROM emp1;
 
 ALTER TABLE emp1
-  DROP INDEX fk_emp1_dept_id;
+    DROP INDEX fk_emp1_dept_id;
+```
+
+> 72 检查约束与默认值约束
+
+## 8. CHECK约束
+
+```mysql
+# MySQL5.7不支持CHECK约束，MySQL8.0支持CHECK约束。
+CREATE TABLE test10
+(
+    id        INT,
+    last_name VARCHAR(15),
+    salary    DECIMAL(10, 2) CHECK (salary > 2000)
+);
+
+INSERT INTO test10 (id, last_name, salary)
+VALUES (1, 'Tom', 2500);
+
+# 添加失败
+INSERT INTO test10 (id, last_name, salary)
+VALUES (2, 'Tom1', 1500);
+
+SELECT *
+FROM test10;
+```
+
+## 9. DEFAULT约束
+
+### 9.1 在CREATE TABLE时添加约束
+
+```mysql
+CREATE TABLE test11
+(
+    id        INT,
+    last_name VARCHAR(15),
+    salary    DECIMAL(10, 2) DEFAULT 2000
+);
+
+DESC test11;
+
+INSERT INTO test11(id, last_name, salary)
+VALUES (1, 'Tom', 3000);
+
+INSERT INTO test11(id, last_name)
+VALUES (2, 'Tom1');
+
+SELECT *
+FROM test11;
+```
+
+### 9.2 在ALTER TABLE时添加约束
+
+```mysql
+CREATE TABLE test12
+(
+    id        INT,
+    last_name VARCHAR(15),
+    salary    DECIMAL(10, 2)
+);
+
+DESC test12;
+
+ALTER TABLE test12
+    MODIFY salary DECIMAL(10, 2) DEFAULT 2500;
+```
+
+### 9.3 在ALTER TABLE时删除约束
+
+```mysql
+ALTER TABLE test12
+    MODIFY salary DECIMAL(10, 2);
+
+DESC test12;
 ```
 
 
