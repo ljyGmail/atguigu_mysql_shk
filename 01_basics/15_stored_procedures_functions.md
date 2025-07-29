@@ -163,5 +163,68 @@ CALL show_mgr_name(@empname);
 SELECT @empname;
 ```
 
+> 80 存储函数的创建与调用
+
+## 2. 存储函数
+
+```mysql
+# 举例1: 创建存储函数，名称为email_by_name()，参数定义为空，该函数查询Abel的email，并返回，数据类型为字符串类型。
+DELIMITER //
+
+CREATE FUNCTION email_by_name()
+    RETURNS VARCHAR(25)
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    RETURN (SELECT email FROM employees WHERE last_name = 'Abel');
+END //
+
+DELIMITER ;
+
+# 调用
+SELECT email_by_name();
+
+SELECT email, last_name
+FROM employees
+WHERE last_name = 'Abel';
+
+# 举例2: 创建存储函数，名称为email_by_id()，参数传入emp_id，该函数查询emp_id的email，并返回，数据类型为字符串类型。
+
+# 创建函数前执行此语句，保证函数的创建会成功。
+SET GLOBAL LOG_BIN_TRUST_FUNCTION_CREATORS = 1;
+
+DELIMITER //
+
+CREATE FUNCTION email_by_id(emp_id INT)
+    RETURNS VARCHAR(25)
+BEGIN
+    RETURN (SELECT email FROM employees WHERE employee_id = emp_id);
+END //
+
+DELIMITER ;
+
+# 调用
+SELECT email_by_id(100);
+
+SET @emp_id = 102;
+SELECT email_by_id(@emp_id);
+
+
+# 举例3: 创建存储函数，名称为count_by_id()，参数传入dept_id，该函数查询dept_id部门的员工人数，并返回，数据类型为整形。
+DELIMITER //
+
+CREATE FUNCTION count_by_id(dept_id INT)
+    RETURNS INT
+BEGIN
+    RETURN (SELECT COUNT(*) FROM employees WHERE department_id = dept_id);
+END //
+
+DELIMITER ;
+
+# 调用
+SET @dept_id := 50;
+SELECT count_by_id(@dept_id);
+```
 
 
