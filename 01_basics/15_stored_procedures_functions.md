@@ -227,4 +227,56 @@ SET @dept_id := 50;
 SELECT count_by_id(@dept_id);
 ```
 
+> 81 存储过程与函数的查看、修改和删除
+
+## 3. 存储过程与函数的查看
+
+### 3.1 使用SHOW CREATE语句查看存储过程和函数的创建信息
+
+```mysql
+SHOW CREATE PROCEDURE show_mgr_name;
+
+SHOW CREATE FUNCTION count_by_id;
+```
+
+### 3.2 使用SHOW STATUS语句查看存储过程和函数的状态信息
+
+```mysql
+SHOW PROCEDURE STATUS;
+
+SHOW PROCEDURE STATUS LIKE 'show_max_salary';
+
+SHOW FUNCTION STATUS LIKE 'email_by_id';
+```
+
+### 3.3 从information_schema.Routines表中查看存储过程和函数的信息
+
+```mysql
+SELECT *
+FROM information_schema.ROUTINES
+WHERE ROUTINE_NAME = 'email_by_id'
+  AND ROUTINE_TYPE = 'FUNCTION'; # 此处区分大小写
+
+SELECT *
+FROM information_schema.ROUTINES
+WHERE ROUTINE_NAME = 'show_min_salary'
+  AND ROUTINE_TYPE = 'PROCEDURE'; # 此处区分大小写
+```
+
+## 4. 存储过程与函数的修改
+
+```mysql
+# 只能修改存储过程或存储函数的一些特性信息，无法修改函数体。若要修改函数体，就先删除后再重新创建。
+ALTER PROCEDURE show_max_salary
+    SQL SECURITY INVOKER
+    COMMENT '查询最高工资';
+```
+
+## 5. 存储过程与函数的删除
+
+```mysql
+DROP FUNCTION IF EXISTS count_by_id;
+
+DROP PROCEDURE IF EXISTS show_min_salary;
+```
 
