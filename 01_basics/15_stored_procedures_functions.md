@@ -280,3 +280,274 @@ DROP FUNCTION IF EXISTS count_by_id;
 DROP PROCEDURE IF EXISTS show_min_salary;
 ```
 
+> 82 第15章 存储过程函数 课后练习
+
+## 课后练习
+
+```mysql
+# 存储过程的练习
+# 0. 准备工作
+CREATE DATABASE IF NOT EXISTS test15_pro_func;
+
+USE test15_pro_func;
+
+# 1. 创建存储过程insert_user(),实现传入用户名和密码，插入到admin表中
+CREATE TABLE admin
+(
+    id        INT PRIMARY KEY AUTO_INCREMENT,
+    user_name VARCHAR(15) NOT NULL,
+    pwd       VARCHAR(25) NOT NULL
+);
+
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS insert_user(IN user_name VARCHAR(15), IN pwd VARCHAR(25))
+BEGIN
+    INSERT INTO admin(user_name, pwd) VALUES (user_name, pwd);
+END //
+
+DELIMITER ;
+
+# 调用
+SET @user_name := 'ljy';
+SET @pwd := '123456';
+CALL insert_user(@user_name, @pwd);
+
+SELECT *
+FROM admin;
+
+# 2. 创建存储过程get_phone(),实现传入女神编号，返回女神姓名和女神电话
+CREATE TABLE beauty
+(
+    id    INT PRIMARY KEY AUTO_INCREMENT,
+    NAME  VARCHAR(15) NOT NULL,
+    phone VARCHAR(15) UNIQUE,
+    birth DATE
+);
+
+INSERT INTO beauty(NAME, phone, birth)
+VALUES ('朱茵', '13201233453', '1982-02-12'),
+       ('孙燕姿', '13501233653', '1980-12-09'),
+       ('田馥甄', '13651238755', '1983-08-21'),
+       ('邓紫棋', '17843283452', '1991-11-12'),
+       ('刘若英', '18635575464', '1989-05-18'),
+       ('杨超越', '13761238755', '1994-05-11');
+
+SELECT *
+FROM beauty;
+
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS get_phone(IN beauty_id INT, OUT beauty_name VARCHAR(15), OUT beauty_phone VARCHAR(15))
+BEGIN
+    SELECT name, phone
+    INTO beauty_name, beauty_phone
+    FROM beauty
+    WHERE id = beauty_id;
+END //
+
+DELIMITER ;
+
+# 调用
+SET @beauty_id := 2;
+CALL get_phone(@beauty_id, @beauty_name, @beauty_phone);
+
+SELECT @beauty_name, @beauty_phone;
+
+SELECT name, phone
+FROM beauty
+WHERE id = 2;
+
+# 3. 创建存储过程date_diff()，实现传入两个女神生日，返回日期间隔大小
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS date_diff(IN birth1 DATE, IN birth2 DATE, OUT diff INT)
+BEGIN
+    SELECT DATEDIFF(birth1, birth2)
+    INTO diff;
+END //
+
+DELIMITER ;
+
+# 调用
+SET @birth1 := '1988-07-17';
+SET @birth2 := '1986-04-12';
+CALL date_diff(@birth1, @birth2, @diff);
+
+SELECT @diff;
+
+# 4. 创建存储过程format_date(), 实现传入一个日期，格式化成xx年xx月xx日并返回
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS format_date(IN date DATE, OUT formatted_date VARCHAR(20))
+BEGIN
+    SELECT DATE_FORMAT(date, '%Y年%m月%d日') INTO formatted_date;
+END //
+
+DELIMITER ;
+
+# 调用
+SET @date := CURDATE();
+CALL format_date(@date, @formatted_date);
+
+SELECT @formatted_date;
+
+# 5. 创建存储过程beauty_limit()，根据传入的起始索引和条目数，查询女神表的记录
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS beauty_limit(IN start INT, IN num INT)
+BEGIN
+    SELECT *
+    FROM beauty
+    LIMIT start,num;
+END //
+
+DELIMITER ;
+
+# 调用
+SET @start = 1;
+SET @num = 3;
+
+CALL beauty_limit(@start, @num);
+
+# 创建带inout模式参数的存储过程
+# 6. 传入a和b两个值，最终a和b都翻倍并返回
+DELIMITER //
+
+CREATE PROCEDURE double_it(INOUT a INT, INOUT b INT)
+BEGIN
+    # SELECT a * 2, b * 2 INTO a,b;
+    SET a = a * 2;
+    SET b = b * 2;
+END //
+
+DELIMITER ;
+
+# 调用
+SET @a := 5;
+SET @b := 6;
+SELECT @a, @b;
+
+CALL double_it(@a, @b);
+
+SELECT @a, @b;
+
+# 7. 删除题目5的存储过程
+DROP PROCEDURE IF EXISTS beauty_limit;
+
+# 8. 查看题目6中存储过程的信息
+SHOW CREATE PROCEDURE double_it;
+
+SHOW PROCEDURE STATUS LIKE 'double_it';
+
+SELECT *
+FROM information_schema.ROUTINES
+WHERE ROUTINE_NAME = 'double_it'
+  AND ROUTINE_TYPE = 'PROCEDURE';
+
+# 存储函数的练习
+# 0. 准备工作
+USE test15_pro_func;
+
+CREATE TABLE employees
+AS
+SELECT *
+FROM atguigudb.employees;
+
+CREATE TABLE departments
+AS
+SELECT *
+FROM atguigudb.departments;
+
+#无参有返回
+# 1. 创建函数get_count(),返回公司的员工个数
+DELIMITER $
+
+CREATE FUNCTION IF NOT EXISTS get_count()
+    RETURNS INT
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    RETURN (SELECT COUNT(*) FROM employees);
+END $
+
+DELIMITER ;
+
+# 调用
+SELECT get_count();
+
+# 有参有返回
+# 2. 创建函数ename_salary(), 根据员工姓名，返回它的工资
+DESC employees;
+
+DELIMITER $
+
+CREATE FUNCTION IF NOT EXISTS ename_salary(ename VARCHAR(25))
+    RETURNS DOUBLE(8, 2)
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    RETURN (SELECT salary FROM employees WHERE last_name = ename);
+END $
+
+DELIMITER ;
+
+# 调用
+SELECT ename_salary('Kochhar');
+
+SELECT *
+FROM employees
+WHERE last_name = 'Kochhar';
+
+# 3. 创建函数dept_sal()，根据部门名，返回该部门的平均工资
+DESC departments;
+
+DELIMITER $
+
+CREATE FUNCTION IF NOT EXISTS dept_sal(dept_name VARCHAR(30))
+    RETURNS DOUBLE(8, 2)
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    RETURN
+        (SELECT dept_avg_sal.avg_sal
+         FROM departments d
+                  JOIN
+              (SELECT department_id, AVG(salary) avg_sal
+               FROM employees
+               GROUP BY department_id) dept_avg_sal
+              ON d.department_id = dept_avg_sal.department_id
+         WHERE d.department_name = dept_name);
+END $
+
+DELIMITER ;
+
+# 调用
+SET @dept_name = 'Marketing';
+
+SELECT dept_sal(@dept_name);
+
+# 4. 创建函数add_float()，实现传入两个float，返回二者之和
+DELIMITER $
+
+CREATE FUNCTION add_float(num1 FLOAT, num2 FLOAT)
+    RETURNS FLOAT
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    RETURN num1 + num2;
+END $
+
+DELIMITER ;
+
+# 调用
+SET @num1 = 3.4;
+SET @num2 = 5.6;
+
+SELECT add_float(@num1, @num2)
+```
+
