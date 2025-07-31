@@ -277,4 +277,191 @@ FROM employees
 WHERE employee_id = 100; # salary: 24000
 ```
 
+> 85 程序出错的处理机制
+
+## 2. 定义条件和处理程序
+
+### 2.1 错误演示
+
+```mysql
+# 演示
+# 错误代码: 1364
+# Field 'email' doesn't have a default value
+INSERT INTO employees(last_name)
+VALUES ('Tom');
+
+DESC employees;
+
+# 错误演示
+DELIMITER //
+
+CREATE PROCEDURE UpdateDataNoCondition()
+BEGIN
+    SET @x = 1;
+    UPDATE employees SET email=NULL WHERE last_name = 'Abel';
+    SET @x = 2;
+    UPDATE employees SET email='aabbel' WHERE last_name = 'Abel';
+    SET @x = 3;
+END //
+
+DELIMITER ;
+
+# 调用存储过程
+# 错误代码: 1048
+# Column 'email' cannot be null
+CALL UpdateDataNoCondition();
+
+SELECT @x;
+```
+
+### 2.2 定义条件
+
+```mysql
+# 格式: DECLARE 错误名称 CONDITION FOR 错误码(或错误条件)
+
+# 举例1: 定义“Field_Not_Be_NULL”错误名与MySQL中违反非空约束的错误类型是“ERROR 1048 (23000)”对应。
+# 方式1: 使用MySQL_error_code。
+# DECLARE Field_Not_Be_NULL CONDITION FOR 1048;
+
+# 方式2: 使用sqlstate_value。
+# DECLARE Field_Not_Be_NULL CONDITION FOR SQLSTATE '23000';
+
+# 举例2：定义"ERROR 1148(42000)"错误，名称为command_not_allowed。
+# 方式1: 使用MySQL_error_code。
+# DECLARE command_not_allowed CONDITION FOR 1148;
+
+# 方式2: 使用sqlstate_value。
+# DECLARE command_not_allowed CONDITION FOR SQLSTATE '42000';
+```
+
+### 2.3 定义处理程序
+
+```mysql
+# 格式: DECLARE 处理方式 HANDLER FOR 错误类型 处理语句
+
+# 方法1：捕获sqlstate_value
+# DECLARE CONTINUE HANDLER FOR SQLSTATE '42S02' SET @info = 'NO_SUCH_TABLE';
+
+# 方法2：捕获mysql_error_value
+# DECLARE CONTINUE HANDLER FOR 1146 SET @info = 'NO_SUCH_TABLE';
+
+# 方法3：先定义条件，再调用
+# DECLARE no_such_table CONDITION FOR 1146;
+# DECLARE CONTINUE HANDLER FOR NO_SUCH_TABLE SET @info = 'NO_SUCH_TABLE';
+
+# 方法4：使用SQLWARNING
+# DECLARE EXIT HANDLER FOR SQLWARNING SET @info = 'ERROR';
+
+# 方法5：使用NOT FOUND
+# DECLARE EXIT HANDLER FOR NOT FOUND SET @info = 'NO_SUCH_TABLE';
+
+# 方法6：使用SQLEXCEPTION
+# DECLARE EXIT HANDLER FOR SQLEXCEPTION SET @info = 'ERROR';
+```
+
+### 2.4 案例的处理
+
+```mysql
+DROP PROCEDURE IF EXISTS UpdateDataNoCondition;
+
+# 重新定义存储过程，体现错误的处理程序。
+DELIMITER //
+
+CREATE PROCEDURE UpdateDataNoCondition()
+BEGIN
+    # 声明处理程序
+    # 处理方式1:
+    DECLARE CONTINUE HANDLER FOR 1048 SET @prc_value = -1;
+    # 处理方式2:
+    # DECLARE CONTINUE HANDLER FOR SQLSTATE '23000' SET @prc_value = -1;
+
+    SET @x = 1;
+    UPDATE employees SET email=NULL WHERE last_name = 'Abel';
+    SET @x = 2;
+    UPDATE employees SET email='aabbel' WHERE last_name = 'Abel';
+    SET @x = 3;
+END //
+
+DELIMITER ;
+
+# 调用存储过程
+CALL UpdateDataNoCondition();
+
+# 查询变量
+SELECT @x, @prc_value;
+```
+
+### 2.5 再举一个例子:
+
+```mysql
+# 创建一个名称为"InsertDataWithCondition"的存储过程
+
+# 1️⃣ 准备工作:
+CREATE TABLE IF NOT EXISTS departments
+AS
+SELECT *
+FROM atguigudb.departments;
+
+DESC departments;
+
+ALTER TABLE departments
+    ADD CONSTRAINT uk_dept_name UNIQUE (department_id);
+
+# 2️⃣ 定义存储过程:
+DELIMITER //
+
+CREATE PROCEDURE InsertDataWithCondition()
+BEGIN
+    SET @x = 1;
+    INSERT INTO departments(department_name)
+    VALUES ('测试');
+    SET @x = 2;
+    INSERT INTO departments(department_name)
+    VALUES ('测试');
+    SET @x = 3;
+END //
+
+DELIMITER ;
+
+# 3️⃣ 调用
+CALL InsertDataWithCondition();
+
+SELECT @x;
+# 2
+
+# 4️⃣ 删除此存储过程
+DROP PROCEDURE IF EXISTS InsertDataWithCondition;
+
+# 5️⃣ 重新定义存储过程(考虑到错误的处理程序)
+DELIMITER //
+
+CREATE PROCEDURE InsertDataWithCondition()
+BEGIN
+    # 处理程序
+    # 方式1:
+    # DECLARE EXIT HANDLER FOR 1062 SET @pro_value = -1;
+    # 方式2:
+    # DECLARE EXIT HANDLER FOR SQLSTATE '23000' SET @pro_value = -1;
+    # 方式3:
+    # 定义条件
+    DECLARE duplicate_entry CONDITION FOR 1062;
+    DECLARE EXIT HANDLER FOR duplicate_entry SET @pro_value = -1;
+
+    SET @x = 1;
+    INSERT INTO departments(department_name)
+    VALUES ('测试');
+    SET @x = 2;
+    INSERT INTO departments(department_name)
+    VALUES ('测试');
+    SET @x = 3;
+END //
+
+DELIMITER ;
+
+# 调用
+CALL InsertDataWithCondition();
+
+SELECT @x, @pro_value;
+```
+
 
