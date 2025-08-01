@@ -367,7 +367,7 @@ DROP PROCEDURE IF EXISTS UpdateDataNoCondition;
 # 重新定义存储过程，体现错误的处理程序。
 DELIMITER //
 
-CREATE PROCEDURE if NOT EXISTS UpdateDataNoCondition()
+CREATE PROCEDURE IF NOT EXISTS UpdateDataNoCondition()
 BEGIN
     # 声明处理程序
     # 处理方式1:
@@ -616,6 +616,120 @@ SELECT employee_id, salary, commission_pct
 FROM employees;
 ```
 
+> 87 分支结构CASE的使用
+
+### 3.2 分支结构之 CASE
+
+```mysql
+# 举例1: 基本使用
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS test_case()
+BEGIN
+    # 演示1: CASE ... WHEN ... THEN ...
+    /*
+    DECLARE var INT DEFAULT 2;
+
+    CASE var
+        WHEN 1 THEN SELECT 'var = 1';
+        WHEN 2 THEN SELECT 'var = 2';
+        WHEN 3 THEN SELECT 'var = 3';
+        ELSE SELECT 'other value';
+        END CASE;
+     */
+
+    # 演示2: CASE WHEN ... THEN ...
+    DECLARE var1 INT DEFAULT 10;
+    CASE
+        WHEN var1 > 100 THEN SELECT '三位数';
+        WHEN var1 >= 10 THEN SELECT '两位数';
+        ELSE SELECT '个位数';
+        END CASE;
+END //
+
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS test_case;
+
+# 调用
+CALL test_case();
+
+# 举例2: 声明存储过程“update_salary_by_eid4”，定义IN参数emp_id，输入员工编号。判断该员工
+# 薪资如果低于9000元，就更新薪资为9000元；薪资大于等于9000元且低于10000的，但是奖金比例
+# 为NULL的，就更新奖金比例为0.01；其他的涨薪100元。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS update_salary_by_eid4(IN emp_id INT)
+BEGIN
+    # 定义局部变量
+    DECLARE emp_salary DOUBLE; # 记录员工的工资
+    DECLARE emp_commission_pct DOUBLE;
+    # 记录员工的奖金率
+
+    # 赋值
+    SELECT salary, commission_pct INTO emp_salary, emp_commission_pct FROM employees WHERE employee_id = emp_id;
+
+    # 判断
+    CASE
+        WHEN emp_salary < 9000
+            THEN UPDATE employees SET salary=9000 WHERE employee_id = emp_id;
+        WHEN emp_salary < 10000 AND emp_commission_pct IS NULL
+            THEN UPDATE employees SET commission_pct=0.01 WHERE employee_id = emp_id;
+        ELSE UPDATE employees SET salary=salary + 100 WHERE employee_id = emp_id;
+        END CASE;
+END //
+
+DELIMITER ;
+
+# 调用
+CALL update_salary_by_eid4(103);
+CALL update_salary_by_eid4(104);
+CALL update_salary_by_eid4(105);
+
+DROP PROCEDURE IF EXISTS update_salary_by_eid4;
+
+SELECT *
+FROM employees
+WHERE employee_id IN (103, 104, 105);
+
+# 举例3: 声明存储过程update_salary_by_eid5，定义IN参数emp_id，输入员工编号。判断该员工的
+# 入职年限，如果是0年，薪资涨50；如果是1年，薪资涨100；如果是2年，薪资涨200；如果是3年，
+# 薪资涨300；如果是4年，薪资涨400；其他的涨薪500。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS update_salary_by_eid5(IN emp_id INT)
+BEGIN
+    # 定义局部变量
+    DECLARE hire_year INT;
+    # 记录员工入职公司的总时间(单位: 年)
+
+    # 赋值
+    SELECT ROUND(DATEDIFF(CURDATE(), hire_date) / 365) INTO hire_year FROM employees WHERE employee_id = emp_id;
+
+    # 判断
+    CASE hire_year
+        WHEN 0
+            THEN UPDATE employees SET salary=salary + 50 WHERE employee_id = emp_id;
+        WHEN 1
+            THEN UPDATE employees SET salary=salary + 100 WHERE employee_id = emp_id;
+        WHEN 2
+            THEN UPDATE employees SET salary=salary + 200 WHERE employee_id = emp_id;
+        WHEN 3
+            THEN UPDATE employees SET salary=salary + 300 WHERE employee_id = emp_id;
+        WHEN 4
+            THEN UPDATE employees SET salary=salary + 400 WHERE employee_id = emp_id;
+        ELSE UPDATE employees SET salary=salary + 500 WHERE employee_id = emp_id;
+        END CASE;
+END //
+
+DELIMITER ;
+
+# 调用
+CALL update_salary_by_eid5(101);
+
+SELECT employee_id, salary, hire_date
+FROM employees;
+```
 
 
 
