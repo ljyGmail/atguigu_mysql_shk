@@ -466,7 +466,7 @@ SELECT @x, @pro_value;
 
 > 86 分支结构IF的使用
 
-## 3. 流程控制
+## 3. 流程控制之分支结构
 
 ### 3.1 分支结构之 IF
 
@@ -731,6 +731,244 @@ SELECT employee_id, salary, hire_date
 FROM employees;
 ```
 
+> 88 LOOP WHILE REPEAT三种循环结构
 
+## 4. 流程控制之循环结构
 
+### 4.1 流程控制之LOOP
 
+```mysql
+# [loop_label:] LOOP
+#     循环执行的语句
+# END LOOP [loop_label]
+
+# 举例1:
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS test_loop()
+BEGIN
+    # 声明局部变量
+    DECLARE num INT DEFAULT 1;
+
+    loop_label:
+    LOOP
+        # 重新赋值
+        SET num = num + 1;
+
+        # 可以考虑某个代码程序反复执行。(略)
+
+        IF num >= 10 THEN
+            LEAVE loop_label ;
+        END IF;
+    END LOOP loop_label;
+
+    # 查看num
+    SELECT num;
+END //
+
+DELIMITER ;
+
+# 调用
+CALL test_loop();
+
+# 举例2: 当市场环境变好时，公司为了奖励大家，决定给大家涨工资。声明存储过程
+# “update_salary_loop()”，声明OUT参数num，输出循环次数。存储过程中实现循环给大家涨薪，薪资涨为
+# 原来的1.1倍。直到全公司的平均薪资达到12000结束。并统计循环次数。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS update_salary_loop(OUT num INT)
+BEGIN
+    # 声明局部变量
+    DECLARE avg_sal DOUBLE; # 记录员工的平均工资
+    DECLARE times INT DEFAULT 0;
+    # 记录循环的次数
+
+    # 1️⃣ 初始化条件
+    # 获取员工的平均工资
+    SELECT AVG(salary)
+    INTO avg_sal
+    FROM employees;
+
+    loop_label:
+    LOOP
+        # 2️⃣ 循环条件
+        # 结束循环的条件
+        IF avg_sal >= 12000
+        THEN
+            LEAVE loop_label;
+        END IF;
+
+        # 3️⃣ 循环体
+        # 如果低于12000，更新员工的工资
+        UPDATE employees SET salary=salary * 1.1;
+
+        # 4️⃣ 迭代条件
+        # 更新avg_sal变量的值
+        SELECT AVG(salary) INTO avg_sal FROM employees;
+        # 记录循环次数
+        SET times = times + 1;
+    END LOOP loop_label;
+
+    # 给num赋值
+    SET num = times;
+END //
+
+DELIMITER ;
+
+SELECT AVG(salary)
+FROM employees;
+
+# 调用
+CALL update_salary_loop(@num);
+
+DROP PROCEDURE IF EXISTS update_salary_loop;
+
+SELECT @num;
+```
+
+### 4.2 流程控制之WHILE
+
+```mysql
+# [while_label:] WHILE 循环条件 DO
+# 循环体
+# END WHILE [while_label];
+
+# 举例1:
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS test_while()
+BEGIN
+    # 初始化条件
+    DECLARE num INT DEFAULT 1;
+
+    # 循环条件
+    WHILE num <= 10
+        DO
+        # 循环体(略)
+
+        # 迭代条件
+            SET num = num + 1;
+        END WHILE;
+
+    SELECT num;
+END //
+
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS test_while;
+
+CALL test_while();
+
+# 举例2: 市场环境不好时，公司为了渡过难关，决定暂时降低大家的薪资。声明存储过程
+# “update_salary_while()”，声明OUT参数num，输出循环次数。存储过程中实现循环给大家降薪，薪资降
+# 为原来的90%。直到全公司的平均薪资达到5000结束。并统计循环次数。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS update_salary_while(OUT num INT)
+BEGIN
+    # 定义局部变量
+    DECLARE avg_sal DOUBLE; # 记录平均工资
+    DECLARE while_count INT DEFAULT 0;
+    # 记录循环次数
+
+    # 赋值
+    SELECT AVG(salary) INTO avg_sal FROM employees;
+
+    WHILE avg_sal > 5000
+        DO
+            UPDATE employees SET salary=salary * 0.9;
+
+            SELECT AVG(salary) INTO avg_sal FROM employees;
+
+            SET while_count = while_count + 1;
+        END WHILE;
+    # 给num赋值
+    SET num = while_count;
+END //
+
+DELIMITER ;
+
+# 调用
+SELECT AVG(salary)
+FROM employees;
+
+CALL update_salary_while(@num);
+SELECT @num;
+```
+
+```mysql
+/*
+凡是循环结构，一定具备4个要素:
+1. 初始化条件
+2. 循环条件
+3. 循环体
+4. 迭代条件
+*/
+```
+
+### 4.3 流程控制之REPEAT
+
+```mysql
+# [repeat_label:] REPEAT
+# 循环体的语句
+# UNTIL 结束循环的条件表达式
+# END REPEAT [repeat_label]
+
+# 举例1:
+DELIMITER //
+
+CREATE PROCEDURE test_repeat()
+BEGIN
+    # 声明局部变量
+    DECLARE num INT DEFAULT 1;
+
+    REPEAT
+        SET num = num + 1;
+    UNTIL num >= 10
+        END REPEAT;
+
+    # 查看
+    SELECT num;
+END //
+
+DELIMITER ;
+
+# 调用
+CALL test_repeat();
+
+# 举例2: 当市场环境变好时，公司为了奖励大家，决定给大家涨工资。声明存储过程
+# “update_salary_repeat()”，声明OUT参数num，输出循环次数。存储过程中实现循环给大家涨薪，薪资涨
+# 为原来的1.15倍。直到全公司的平均薪资达到13000结束。并统计循环次数。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS update_salary_repeat(OUT num INT)
+BEGIN
+    # 声明局部变量
+    DECLARE avg_sal DOUBLE; # 记录平均工资
+    DECLARE repeat_count INT DEFAULT 0;
+    # 记录循环次数
+
+    # 赋值
+    SELECT AVG(salary) INTO avg_sal FROM employees;
+
+    REPEAT
+        UPDATE employees SET salary=salary * 1.15;
+        SET repeat_count = repeat_count + 1;
+
+        SELECT AVG(salary) INTO avg_sal FROM employees;
+    UNTIL avg_sal >= 13000 END REPEAT;
+
+    # 给num赋值
+    SET num = repeat_count;
+END //
+
+DELIMITER ;
+
+SELECT AVG(salary)
+FROM employees;
+
+# 调用
+CALL update_salary_repeat(@num);
+
+SELECT @num;
+```
