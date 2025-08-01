@@ -295,7 +295,7 @@ DESC employees;
 # 错误演示
 DELIMITER //
 
-CREATE PROCEDURE UpdateDataNoCondition()
+CREATE PROCEDURE IF NOT EXISTS UpdateDataNoCondition()
 BEGIN
     SET @x = 1;
     UPDATE employees SET email=NULL WHERE last_name = 'Abel';
@@ -367,7 +367,7 @@ DROP PROCEDURE IF EXISTS UpdateDataNoCondition;
 # 重新定义存储过程，体现错误的处理程序。
 DELIMITER //
 
-CREATE PROCEDURE UpdateDataNoCondition()
+CREATE PROCEDURE if NOT EXISTS UpdateDataNoCondition()
 BEGIN
     # 声明处理程序
     # 处理方式1:
@@ -410,7 +410,7 @@ ALTER TABLE departments
 # 2️⃣ 定义存储过程:
 DELIMITER //
 
-CREATE PROCEDURE InsertDataWithCondition()
+CREATE PROCEDURE IF NOT EXISTS InsertDataWithCondition()
 BEGIN
     SET @x = 1;
     INSERT INTO departments(department_name)
@@ -435,7 +435,7 @@ DROP PROCEDURE IF EXISTS InsertDataWithCondition;
 # 5️⃣ 重新定义存储过程(考虑到错误的处理程序)
 DELIMITER //
 
-CREATE PROCEDURE InsertDataWithCondition()
+CREATE PROCEDURE IF NOT EXISTS InsertDataWithCondition()
 BEGIN
     # 处理程序
     # 方式1:
@@ -463,5 +463,160 @@ CALL InsertDataWithCondition();
 
 SELECT @x, @pro_value;
 ```
+
+> 86 分支结构IF的使用
+
+## 3. 流程控制
+
+### 3.1 分支结构之 IF
+
+```mysql
+# 举例1:
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS test_if()
+BEGIN
+    # 情况1:
+    # 声明局部变量
+    # DECLARE stu_name VARCHAR(15);
+
+    # IF stu_name IS NULL
+    # THEN
+    #     SELECT 'stu_name is NULL';
+    # END IF;
+
+    # 情况2: 二选一
+    # DECLARE email VARCHAR(25) DEFAULT 'aaa';
+
+    # IF email IS NULL
+    # THEN
+    #     SELECT 'email is NULL';
+    # ELSE
+    #     SELECT 'email is not NULL';
+    # END IF;
+
+    # 情况3: 多选一
+    DECLARE age INT DEFAULT 20;
+
+    IF age > 40 THEN
+        SELECT '中老年';
+    ELSEIF age > 18 THEN
+        SELECT '青壮年';
+    ELSEIF age > 8 THEN
+        SELECT '青少年';
+    ELSE
+        SELECT '婴幼儿';
+    END IF;
+END //
+
+DELIMITER ;
+
+# 调用
+CALL test_if();
+
+DROP PROCEDURE IF EXISTS test_if;
+
+# 举例2: 声明存储过程“update_salary_by_eid1”，定义IN参数emp_id，输入员工编号。判断该员工
+# 薪资如果低于8000元并且入职时间超过5年，就涨薪500元; 否则就不变。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS update_salary_by_eid1(IN emp_id INT)
+BEGIN
+    # 声明局部变量
+    DECLARE emp_salary DOUBLE DEFAULT 0.0; # 记录员工的工资
+    DECLARE hire_year DOUBLE;
+    # 记录员工入职公司的年头
+
+    # 赋值
+    SELECT salary, DATEDIFF(CURDATE(), hire_date) / 365
+    INTO emp_salary,hire_year
+    FROM employees
+    WHERE employee_id = emp_id;
+
+    IF emp_salary < 8000 AND hire_year >= 5
+    THEN
+        UPDATE employees SET salary=salary + 500 WHERE employee_id = emp_id;
+    END IF;
+END //
+
+DELIMITER ;
+
+# 调用存储过程
+SET @emp_id := 104;
+CALL update_salary_by_eid1(@emp_id);
+
+SELECT employee_id, salary, hire_date
+FROM employees;
+
+# 举例3：声明存储过程“update_salary_by_eid2”，定义IN参数emp_id，输入员工编号。判断该员工
+# 薪资如果低于9000元并且入职时间超过5年，就涨薪500元；否则就涨薪100元。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS update_salary_by_eid2(IN emp_id INT)
+BEGIN
+    # 定义局部变量
+    DECLARE emp_salary DOUBLE;
+    DECLARE hire_year DOUBLE;
+
+    # 赋值
+    SELECT salary INTO emp_salary FROM employees WHERE employee_id = emp_id;
+
+    SELECT DATEDIFF(CURDATE(), hire_date) / 365 INTO hire_year FROM employees WHERE employee_id = emp_id;
+
+    IF emp_salary < 9000 AND hire_year >= 5
+    THEN
+        UPDATE employees SET salary=salary + 500 WHERE employee_id = emp_id;
+    ELSE
+        UPDATE employees SET salary=salary + 100 WHERE employee_id = emp_id;
+    END IF;
+END //
+
+DELIMITER ;
+
+# 调用存储过程
+CALL update_salary_by_eid2(102);
+
+SELECT employee_id, salary, hire_date
+FROM employees;
+
+# 举例4：声明存储过程“update_salary_by_eid3”，定义IN参数emp_id，输入员工编号。判断该员工
+# 薪资如果低于9000元，就更新薪资为9000元；薪资如果大于等于9000元且低于10000的，但是奖金
+# 比例为NULL的，就更新奖金比例为0.01；其他的涨薪100元。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS update_salary_by_eid3(IN emp_id INT)
+BEGIN
+    # 声明局部变量
+    DECLARE emp_salary DOUBLE; # 记录员工的工资
+    DECLARE emp_commission_pct DOUBLE;
+    # 记录员工的奖金率
+
+    # 赋值
+    SELECT salary, commission_pct INTO emp_salary, emp_commission_pct FROM employees WHERE employee_id = emp_id;
+
+    # 判断
+    IF emp_salary < 9000
+    THEN
+        UPDATE employees SET salary=9000 WHERE employee_id = emp_id;
+    ELSEIF emp_salary < 10000 AND emp_commission_pct IS NULL
+    THEN
+        UPDATE employees SET commission_pct=0.01 WHERE employee_id = emp_id;
+    ELSE
+        UPDATE employees SET salary=salary + 100 WHERE employee_id = emp_id;
+    END IF;
+END //
+
+DELIMITER ;
+
+# 调用存储过程
+CALL update_salary_by_eid3(104);
+CALL update_salary_by_eid3(108);
+
+SELECT employee_id, salary, commission_pct
+FROM employees;
+```
+
+
+
 
 
