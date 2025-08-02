@@ -1097,5 +1097,61 @@ DROP PROCEDURE IF EXISTS test_iterate;
 CALL test_iterate();
 ```
 
+> 90 游标的使用
 
+## 6. 游标的使用
+
+```mysql
+/*
+游标的使用:
+1️⃣ 声明游标
+2️⃣ 打开游标
+3️⃣ 使用游标(从游标中获取数据)
+4️⃣ 关闭游标
+ */
+
+# 创建存储过程“get_count_by_limit_total_salary()”，声明IN参数 limit_total_salary，DOUBLE类型；声明
+# OUT参数total_count，INT类型。函数的功能可以实现累加薪资最高的几个员工的薪资值，直到薪资总和
+# 达到limit_total_salary参数的值，返回累加的人数给total_count。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS get_count_by_limit_total_salary(IN limit_total_salary DOUBLE, OUT total_count INT)
+BEGIN
+    # 声明局部变量
+    DECLARE sum_sal DOUBLE DEFAULT 0.0; # 记录累加的工资总额
+    DECLARE emp_sal DOUBLE; # 记录每一个员工的工资
+    DECLARE emp_count INT DEFAULT 0;
+    # 记录累加的人数
+
+    # 1️⃣ 声明游标
+    DECLARE emp_cursor CURSOR FOR SELECT salary FROM employees ORDER BY salary DESC;
+
+    # 2️⃣ 打开游标
+    OPEN emp_cursor;
+
+    REPEAT
+        # 3️⃣ 使用游标
+        FETCH emp_cursor INTO emp_sal;
+
+        SET sum_sal := sum_sal + emp_sal;
+        SET emp_count := emp_count + 1;
+
+    UNTIL sum_sal >= limit_total_salary
+        END REPEAT;
+
+    SET total_count := emp_count;
+
+    # 4️⃣ 关闭游标
+    CLOSE emp_cursor;
+END //
+
+DELIMITER ;
+
+# 调用
+SET @limit_total_salary := 200000;
+CALL get_count_by_limit_total_salary(@limit_total_salary, @total_count);
+
+SELECT @total_count;
+```
+ 
 
