@@ -735,7 +735,7 @@ FROM employees;
 
 ## 4. 流程控制之循环结构
 
-### 4.1 流程控制之LOOP
+### 4.1 循环结构之LOOP
 
 ```mysql
 # [loop_label:] LOOP
@@ -826,7 +826,7 @@ DROP PROCEDURE IF EXISTS update_salary_loop;
 SELECT @num;
 ```
 
-### 4.2 流程控制之WHILE
+### 4.2 循环结构之WHILE
 
 ```mysql
 # [while_label:] WHILE 循环条件 DO
@@ -906,7 +906,7 @@ SELECT @num;
 */
 ```
 
-### 4.3 流程控制之REPEAT
+### 4.3 循环结构之REPEAT
 
 ```mysql
 # [repeat_label:] REPEAT
@@ -972,3 +972,130 @@ CALL update_salary_repeat(@num);
 
 SELECT @num;
 ```
+
+> 89 LEAVE和ITERATE的使用
+
+## 5. 流程控制之跳转语句
+
+### 5.1 LEAVE的使用
+
+```mysql
+# 举例1: 创建存储过程 “leave_begin()”，声明INT类型的IN参数num。给BEGIN...END加标记名，并在
+# BEGIN...END中使用IF语句判断num参数的值。
+#     如果num<=0，则使用LEAVE语句退出BEGIN...END；
+#     如果num=1，则查询“employees”表的平均薪资；
+#     如果num=2，则查询“employees”表的最低薪资；
+#     如果num>2，则查询“employees”表的最高薪资。
+# IF语句结束后查询“employees”表的总人数。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS leave_begin(IN num INT)
+begin_label:
+BEGIN
+    IF num <= 0
+    THEN
+        LEAVE begin_label;
+    ELSEIF num = 1
+    THEN
+        SELECT AVG(salary) FROM employees;
+    ELSEIF num = 2
+    THEN
+        SELECT MIN(salary) FROM employees;
+    ELSE
+        SELECT MAX(salary) FROM employees;
+    END IF;
+
+    # 查询总人数
+    SELECT COUNT(*) FROM employees;
+END //
+
+DELIMITER ;
+
+# 调用
+CALL leave_begin(0);
+CALL leave_begin(1);
+CALL leave_begin(2);
+CALL leave_begin(3);
+
+# 举例2: 当市场环境不好时，公司为了渡过难关，决定暂时降低大家的薪资。声明存储过程“leave_while()”，声明
+# OUT参数num，输出循环次数，存储过程中使用WHILE循环给大家降低薪资为原来薪资的90%，直到全公
+# 司的平均薪资小于等于10000，并统计循环次数。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS leave_while(OUT num INT)
+BEGIN
+    # 定义局部变量
+    DECLARE avg_sal DOUBLE; # 记录平均工资
+    DECLARE while_count INT DEFAULT 0;
+    # 记录循环的次数
+
+    # ① 初始化条件
+    SELECT AVG(salary) INTO avg_sal FROM employees;
+
+    # ② 循环条件
+    while_label:
+    WHILE TRUE
+        DO
+            # ③ 循环体
+            IF avg_sal <= 10000
+            THEN
+                LEAVE while_label;
+            END IF;
+
+            UPDATE employees SET salary=salary * 0.9;
+            SET while_count := while_count + 1;
+            # ④ 迭代条件
+            SELECT AVG(salary) INTO avg_sal FROM employees;
+        END WHILE;
+    # 赋值
+    SET num := while_count;
+END //
+
+DELIMITER ;
+
+# 调用
+CALL leave_while(@num);
+SELECT @num;
+
+SELECT AVG(salary)
+FROM employees;
+```
+
+### 5.2 iterate的使用
+
+```mysql
+# 举例： 定义局部变量num，初始值为0。循环结构中执行num + 1操作。
+#   如果num < 10，则继续执行循环；
+#   如果num > 15，则退出循环结构；
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS test_iterate()
+BEGIN
+    DECLARE num INT DEFAULT 0;
+    loop_label:
+    LOOP
+        # 赋值
+        SET num := num + 1;
+
+        IF num < 10
+        THEN
+            ITERATE loop_label;
+        ELSEIF num > 15
+        THEN
+            LEAVE loop_label;
+        END IF;
+
+        SELECT '尚硅谷: 让天下没有难学的技术' slogan;
+    END LOOP;
+END //
+
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS test_iterate;
+
+# 调用
+CALL test_iterate();
+```
+
+
+
