@@ -1153,5 +1153,327 @@ CALL get_count_by_limit_total_salary(@limit_total_salary, @total_count);
 
 SELECT @total_count;
 ```
- 
+
+> 91 第16章 变量、流程控制与游标 课后练习
+
+## 课后练习
+
+```mysql
+#######################
+# 1. 变量
+#######################
+/*
+变量:
+    系统变量(全局系统变量、会话系统变量)
+    用户自定义变量(会话用户变量、局部变量)
+*/
+
+# 0. 准备工作
+CREATE DATABASE IF NOT EXISTS test16_var_cur;
+
+USE test16_var_cur;
+
+CREATE TABLE IF NOT EXISTS employees
+AS
+SELECT *
+FROM atguigudb.employees;
+
+CREATE TABLE IF NOT EXISTS departments
+AS
+SELECT *
+FROM atguigudb.departments;
+
+# 无参有返回
+# 1. 创建函数get_count(),返回公司的员工个数
+DELIMITER //
+
+CREATE FUNCTION IF NOT EXISTS get_count()
+    RETURNS INT
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    # 声明局部变量
+    DECLARE emp_count INT DEFAULT 0;
+
+    # 赋值
+    SELECT COUNT(*) INTO emp_count FROM employees;
+
+    RETURN emp_count;
+END //
+
+DELIMITER ;
+
+# 调用
+SELECT get_count();
+
+# 有参有返回
+# 2. 创建函数ename_salary(),根据员工姓名，返回它的工资
+DESC employees;
+
+DELIMITER //
+
+CREATE FUNCTION IF NOT EXISTS ename_salary(emp_name VARCHAR(25))
+    RETURNS DOUBLE
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    # 声明变量
+    SET @sal := 0;
+    # 定义了一个会话用户变量
+
+    # 赋值
+    SELECT salary INTO @sal FROM employees WHERE last_name = emp_name;
+
+    RETURN @sal;
+END //
+
+DELIMITER ;
+
+# 调用
+SELECT ename_salary('Abel');
+
+SELECT @sal;
+
+# 3. 创建函数dept_sal() ,根据部门名，返回该部门的平均工资
+DESC departments;
+
+DELIMITER //
+
+CREATE FUNCTION dept_sal(dept_name VARCHAR(30))
+    RETURNS DOUBLE
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    DECLARE avg_sal DOUBLE;
+
+    SELECT AVG(salary)
+    INTO avg_sal
+    FROM employees e
+             JOIN departments d
+                  ON e.department_id = d.department_id
+    WHERE department_name = dept_name;
+
+    RETURN avg_sal;
+END //
+
+DELIMITER ;
+
+# 调用
+SELECT dept_sal('Marketing');
+
+# 4. 创建函数add_float()，实现传入两个float，返回二者之和
+DELIMITER //
+
+CREATE FUNCTION add_float(num1 FLOAT, num2 FLOAT)
+    RETURNS FLOAT
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    DECLARE sum_val FLOAT;
+    SET sum_val := num1 + num2;
+    RETURN sum_val;
+END //
+
+DELIMITER ;
+
+# 调用
+SET @num1 = 2.4;
+SET @num2 = 4.9;
+
+SELECT add_float(@num1, @num2);
+#######################
+# 2. 流程控制
+#######################
+# 1. 创建函数test_if_case()，实现传入成绩，如果成绩>90,返回A，如果成绩>80,返回B，如果成绩>60,返回 C，否则返回D
+# 要求：分别使用if结构和case结构实现
+DELIMITER //
+
+CREATE FUNCTION test_if_case(score DOUBLE)
+    RETURNS CHAR(1)
+    DETERMINISTIC
+    CONTAINS SQL
+    READS SQL DATA
+BEGIN
+    # 声明变量
+    DECLARE score_level CHAR;
+
+    # IF方式:
+    # IF score > 90
+    # THEN
+    #     SET score_level := 'A';
+    # ELSEIF score > 80
+    # THEN
+    #     SET score_level := 'B';
+    # ELSEIF score > 60
+    # THEN
+    #     SET score_level := 'C';
+    # ELSE
+    #     SET score_level := 'D';
+    # END IF;
+    # # 返回
+    # RETURN score_level;
+
+    # CASE方式:
+    CASE
+        WHEN score > 90
+            THEN SET score_level := 'A';
+        WHEN score > 80
+            THEN SET score_level := 'B';
+        WHEN score > 60
+            THEN SET score_level := 'C';
+        ELSE SET score_level := 'D';
+        END CASE;
+    # 返回
+    RETURN score_level;
+END //
+
+DELIMITER ;
+
+DROP FUNCTION IF EXISTS test_if_case;
+
+# 调用
+SELECT test_if_case(91);
+
+# 2. 创建存储过程test_if_pro()，传入工资值，如果工资值<3000,则删除工资为此值的员工，如果3000 <= 工资值 <= 5000,
+# 则修改此工资值的员工薪资涨1000，否则涨工资500。
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS test_if_pro(IN emp_sal DOUBLE)
+BEGIN
+    IF emp_sal < 3000 THEN
+        DELETE FROM employees WHERE salary = emp_sal;
+    ELSEIF emp_sal <= 5000
+    THEN
+        UPDATE employees SET salary=salary + 1000 WHERE salary = emp_sal;
+    ELSE
+        UPDATE employees SET salary=salary + 500 WHERE salary = emp_sal;
+    END IF;
+END //
+
+DELIMITER ;
+
+# 调用
+CALL test_if_pro(2900);
+CALL test_if_pro(3100);
+CALL test_if_pro(24000);
+
+SELECT *
+FROM employees;
+
+# 3. 创建存储过程insert_data(),传入参数为 IN 的 INT 类型变量 insert_count,实现向admin表中批量插入insert_count条记录。
+CREATE TABLE admin
+(
+    id        INT PRIMARY KEY AUTO_INCREMENT,
+    user_name VARCHAR(25) NOT NULL,
+    user_pwd  VARCHAR(35) NOT NULL
+);
+
+SELECT *
+FROM admin;
+
+# ------------------------------------------------------------
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS insert_data(IN insert_count INT)
+BEGIN
+    # 声明变量
+    DECLARE init_count INT DEFAULT 1; # 1️⃣ 初始化条件
+
+    WHILE init_count <= insert_count # 2️⃣ 循环条件
+        DO
+            # 3️⃣ 循环体
+            INSERT INTO admin (user_name, user_pwd) VALUES (CONCAT('atguigu', init_count), ROUND(RAND() * 1000000));
+            # 4️⃣ 迭代条件
+            SET init_count := init_count + 1;
+        END WHILE;
+END //
+
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS insert_data;
+
+# 调用
+CALL insert_data(100);
+
+TRUNCATE TABLE admin;
+
+SELECT *
+FROM admin;
+#######################
+# 3. 游标的使用
+#######################
+# 创建存储过程update_salary()，参数1为 IN 的INT型变量dept_id，表示部门id；参数2为 IN的INT型变量
+# change_sal_count，表示要调整薪资的员工个数。查询指定id部门的员工信息，按照salary升序排列，
+# 根据hire_date的情况，调整前change_sal_count个员工的薪资，详情如下。
+```
+
+![img.png](images/91_practice_3_1.png)
+
+```mysql
+DELIMITER //
+
+CREATE PROCEDURE IF NOT EXISTS update_salary(IN dept_id INT, IN change_sal_count INT)
+BEGIN
+    # 声明局部变量
+    DECLARE init_count INT DEFAULT 1; # 用于表示循环结构的初始化条件
+    DECLARE emp_id INT; # 记录员工ID
+    DECLARE emp_hire_date DATE; # 记录员工的入职时间
+    DECLARE add_sal_rate DOUBLE;
+    # 记录涨薪的比例
+
+    # 声明游标
+    DECLARE emp_cursor CURSOR FOR SELECT employee_id, hire_date
+                                  FROM employees
+                                  WHERE department_id = dept_id
+                                  ORDER BY salary;
+
+    # 打开游标
+    OPEN emp_cursor;
+
+    WHILE init_count <= change_sal_count
+        DO
+            # 使用游标
+            FETCH emp_cursor INTO emp_id, emp_hire_date;
+
+            # 获取涨薪的比例
+            IF YEAR(emp_hire_date) < 1995
+            THEN
+                SET add_sal_rate := 1.2;
+            ELSEIF YEAR(emp_hire_date) <= 1998
+            THEN
+                SET add_sal_rate := 1.15;
+            ELSEIF YEAR(emp_hire_date <= 2001)
+            THEN
+                SET add_sal_rate := 1.10;
+            ELSE
+                SET add_sal_rate := 1.05;
+            END IF;
+
+            # 涨薪操作
+            UPDATE employees SET salary=salary * add_sal_rate WHERE employee_id = emp_id;
+
+            # 迭代条件的更新
+            SET init_count := init_count + 1;
+        END WHILE;
+
+    # 关闭游标
+    CLOSE emp_cursor;
+END //
+
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS update_salary;
+
+# 调用
+CALL update_salary(50, 3);
+
+SELECT employee_id, hire_date, salary
+FROM employees
+WHERE department_id = 50
+ORDER BY salary;
+```
 
