@@ -77,7 +77,7 @@ DELIMITER ;
 
 # 测试
 INSERT INTO test_trigger(t_note)
-VALUES ('Jerry1...');
+VALUES ('Jerry2...');
 
 SELECT *
 FROM test_trigger;
@@ -137,5 +137,134 @@ SELECT *
 FROM employees;
 ```
 
+> 93 查看删除触发器 触发器的课后练习
+
+## 2. 查看触发器
+
+```mysql
+# 方式1: 查看当前数据库中所有触发器的定义
+SHOW TRIGGERS;
+
+# 方式2: 查看当前数据库中某个触发器的定义
+SHOW CREATE TRIGGER salary_check_trigger;
+
+# 方式3: 从系统库information_schema的TRIGGERS表中查询某个触发器的信息。
+SELECT *
+FROM information_schema.TRIGGERS;
+```
+
+## 3. 删除触发器
+
+```mysql
+DROP TRIGGER IF EXISTS after_insert_test_tri;
+```
+
+## 课后练习
+
+```mysql
+# 练习1
+# 0. 准备工作
+CREATE DATABASE IF NOT EXISTS test17_trigger;
+
+USE test17_trigger;
+
+CREATE TABLE emps
+AS
+SELECT employee_id, last_name, salary
+FROM atguigudb.employees;
+
+DESC emps;
+
+SELECT *
+FROM emps;
+
+# 1. 复制一张emps表的空表emps_back，只有表结构，不包含任何数据
+CREATE TABLE IF NOT EXISTS emps_back
+AS
+SELECT *
+FROM emps
+WHERE FALSE;
+
+DESC emps_back;
+
+# 2. 查询emps_back表中的数据
+SELECT *
+FROM emps_back;
+
+# 3. 创建触发器emps_insert_trigger，每当向emps表中添加一条记录时，同步将这条记录添加到emps_back表中
+DELIMITER //
+
+CREATE TRIGGER IF NOT EXISTS emps_insert_trigger
+    AFTER INSERT
+    ON emps
+    FOR EACH ROW
+BEGIN
+    # 将新添加到emps表中记录添加到emps_back表中
+    INSERT INTO emps_back(employee_id, last_name, salary)
+    VALUES (NEW.employee_id, NEW.last_name, NEW.salary);
+END //
+
+DELIMITER ;
+
+SHOW TRIGGERS;
+
+# 4. 验证触发器是否起作用
+SELECT *
+FROM emps
+ORDER BY employee_id DESC;
+
+SELECT *
+FROM emps_back;
+
+INSERT INTO emps (employee_id, last_name, salary)
+VALUES (301, 'Tom1', 2000);
+
+# 练习2
+# 0. 准备工作：使用练习1中的emps表
+
+# 1. 复制一张emps表的空表emps_back1，只有表结构，不包含任何数据
+CREATE TABLE IF NOT EXISTS emps_back1
+AS
+SELECT *
+FROM emps
+WHERE FALSE;
+
+# 2. 查询emps_back1表中的数据
+SELECT *
+FROM emps_back1;
+
+# 3. 创建触发器emps_del_trigger，每当向emps表中删除一条记录时，同步将删除的这条记录添加到emps_back1表中
+DELIMITER //
+
+CREATE TRIGGER IF NOT EXISTS emps_del_trigger
+    BEFORE DELETE
+    ON emps
+    FOR EACH ROW
+BEGIN
+    # 将emps表中删除的记录，添加到emps_back1表中
+    INSERT INTO emps_back1(employee_id, last_name, salary)
+    VALUES (OLD.employee_id, old.last_name, old.salary);
+END //
+
+DELIMITER ;
+
+SHOW TRIGGERS;
+
+# 4. 验证触发器是否起作用
+SELECT *
+FROM emps
+ORDER BY employee_id DESC;
+
+SELECT *
+FROM emps_back1;
+
+DELETE
+FROM emps
+WHERE employee_id = 301;
+
+# 批量删除
+DELETE
+FROM emps;
+```
 
 
