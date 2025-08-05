@@ -280,5 +280,99 @@ FROM goods
 WINDOW w AS (PARTITION BY category_id ORDER BY price);
 ```
 
+> 95 公用表表达式 课后练习 最后寄语
+
+## 2. 公用表表达式
+
+### 2.1 普通公用表表达式
+
+```mysql
+CREATE TABLE departments
+AS
+SELECT *
+FROM atguigudb.departments;
+
+# 举例：查询员工所在的部门的详细信息。
+# 子查询实现
+SELECT *
+FROM departments
+WHERE department_id IN (SELECT DISTINCT department_id
+                        FROM employees);
+
+# CTE实现
+WITH cte_emp
+         AS (SELECT DISTINCT department_id
+             FROM employees)
+SELECT *
+FROM departments d
+         JOIN cte_emp e
+              ON d.department_id = e.department_id;
+```
+
+### 2.2 递归公用表表达式
+
+```mysql
+# 举例: 找出公司employees表中所有的下下属。
+WITH RECURSIVE cte
+                   AS
+                   (SELECT employee_id, last_name, manager_id, 1 AS n
+                    FROM employees
+                    WHERE employee_id = 100 -- 种子查询，找到第一代领导
+                    UNION ALL
+                    SELECT a.employee_id, a.last_name, a.manager_id, n + 1
+                    FROM employees AS a
+                             JOIN cte
+                                  ON (a.manager_id = cte.employee_id) -- 递归查询，找出以递归公用表表达式的人为领导的人
+                   )
+SELECT employee_id, last_name
+FROM cte
+WHERE n >= 3;
+```
+
+## 课后练习
+
+```mysql
+CREATE DATABASE IF NOT EXISTS test18_mysql8;
+
+USE test18_mysql8;
+
+# 1. 创建students数据表，如下
+CREATE TABLE students
+(
+    id      INT PRIMARY KEY AUTO_INCREMENT,
+    student VARCHAR(15),
+    points  TINYINT
+);
+
+# 2. 向表中添加数据如下
+INSERT INTO students(student, points)
+VALUES ('张三', 89),
+       ('李四', 77),
+       ('王五', 88),
+       ('赵六', 90),
+       ('孙七', 90),
+       ('周八', 88);
+
+SELECT *
+FROM students;
+
+# 3. 分别使用RANK()、DENSE_RANK() 和 ROW_NUMBER()函数对学生成绩降序排列情况进行显示。
+# 方式1:
+SELECT ROW_NUMBER() OVER (ORDER BY points DESC) AS "排序1",
+       RANK() OVER (ORDER BY points DESC)       AS "排序2",
+       DENSE_RANK() OVER (ORDER BY points DESC) AS "排序3",
+       student,
+       points
+FROM students;
+
+# 方式2:
+SELECT ROW_NUMBER() OVER w AS "排序1",
+       RANK() OVER w       AS "排序2",
+       DENSE_RANK() OVER w AS "排序3",
+       student,
+       points
+FROM students
+WINDOW w AS (ORDER BY points DESC);
+```
 
 
